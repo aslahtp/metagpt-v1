@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 98%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background-secondary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-foreground-subtle;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-hover;
+  }
+
+  .btn-secondary {
+    @apply btn bg-background-tertiary text-foreground hover:bg-border;
+  }
+
+  .btn-ghost {
+    @apply btn hover:bg-background-tertiary;
+  }
+
+  .input {
+    @apply flex h-10 w-full rounded-lg border border-border bg-background-secondary px-3 py-2 text-sm placeholder:text-foreground-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .card {
+    @apply rounded-xl border border-border bg-background-secondary p-4;
+  }
+
+  .timeline-dot {
+    @apply h-3 w-3 rounded-full;
+  }
+
+  .timeline-dot-pending {
+    @apply timeline-dot bg-foreground-subtle;
+  }
+
+  .timeline-dot-active {
+    @apply timeline-dot bg-accent animate-pulse;
+  }
+
+  .timeline-dot-complete {
+    @apply timeline-dot bg-success;
+  }
+
+  .timeline-dot-error {
+    @apply timeline-dot bg-error;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .glass {
+    @apply bg-background-secondary/80 backdrop-blur-xl;
+  }
+}
