@@ -101,7 +101,8 @@ def create_app() -> FastAPI:
 app = create_app()
 
 
-if __name__ == "__main__":
+def serve() -> None:
+    """Entry point for `uv run serve`. Avoids Windows 'Failed to canonicalize script path'."""
     import uvicorn
 
     settings = get_settings()
@@ -111,3 +112,7 @@ if __name__ == "__main__":
         port=8000,
         reload=settings.debug,
     )
+
+
+if __name__ == "__main__":
+    serve()

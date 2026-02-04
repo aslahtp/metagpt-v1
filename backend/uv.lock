@@ -584,7 +584,7 @@ wheels = [
 ]
 
 [[package]]
-name = "metagpt-lovable"
+name = "metagpt"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

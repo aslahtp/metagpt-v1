@@ -13,7 +13,10 @@ cp .env.example .env
 # Edit .env and add your GOOGLE_API_KEY
 
 # Run the server
-uv run uvicorn app.main:app --reload
+uv run serve
+
+# If you renamed the project directory and see "Failed to canonicalize script path",
+# recreate the venv: remove the backend/.venv folder, then run `uv sync` again.
 
 # Run tests
 uv run pytest
