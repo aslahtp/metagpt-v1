@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Code, Monitor } from "lucide-react";
 import {
   getProject,
   runPipeline,
@@ -15,7 +15,7 @@ import { FileExplorer } from "@/components/FileExplorer";
 import { CodeViewer } from "@/components/CodeViewer";
 import { ChatPanel } from "@/components/ChatPanel";
 import { AgentOutputs } from "@/components/AgentOutputs";
-import { PreviewPanel } from "@/components/PreviewPanel";
+import { PreviewFrame } from "@/components/PreviewFrame";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -34,12 +34,12 @@ export default function ProjectPage() {
     setFileContent,
     setFileLanguage,
     setGeneratedFiles,
-    previewEnabled,
   } = useProjectStore();
 
-  const [activeTab, setActiveTab] = useState<
-    "timeline" | "outputs" | "preview"
-  >("timeline");
+  const [rightPanelTab, setRightPanelTab] = useState<"timeline" | "outputs">(
+    "timeline",
+  );
+  const [centerView, setCenterView] = useState<"code" | "preview">("code");
   const [error, setError] = useState<string | null>(null);
 
   // Fetch project data
@@ -134,6 +134,7 @@ export default function ProjectPage() {
   // Fetch file content
   const handleSelectFile = async (path: string) => {
     setSelectedFile(path);
+    setCenterView("code"); // Switch to code view when selecting a file
 
     try {
       const file = await getFileContent(projectId, path);
@@ -165,6 +166,8 @@ export default function ProjectPage() {
       </div>
     );
   }
+
+  const isReactProject = project.preview?.preview_supported;
 
   return (
     <div className="h-screen flex flex-col">
@@ -208,19 +211,59 @@ export default function ProjectPage() {
           </div>
         </div>
 
-        {/* Center Panel - Code Viewer */}
+        {/* Center Panel - Code Viewer / Preview */}
         <div className="flex-1 flex flex-col min-w-0">
-          <CodeViewer />
+          {/* Center Panel Tabs */}
+          {isReactProject && (
+            <div className="h-10 border-b border-border flex items-center px-2 gap-1 shrink-0">
+              <button
+                onClick={() => setCenterView("code")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  centerView === "code"
+                    ? "bg-accent/10 text-accent"
+                    : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+                }`}
+              >
+                <Code className="h-4 w-4" />
+                Code
+              </button>
+              <button
+                onClick={() => setCenterView("preview")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  centerView === "preview"
+                    ? "bg-accent/10 text-accent"
+                    : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+                }`}
+              >
+                <Monitor className="h-4 w-4" />
+                Preview
+              </button>
+              {project.preview?.framework && (
+                <span className="ml-auto text-xs px-2 py-0.5 rounded bg-success/10 text-success">
+                  {project.preview.framework} detected
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Center Content */}
+          <div className="flex-1 overflow-hidden">
+            {centerView === "code" ? (
+              <CodeViewer />
+            ) : (
+              <PreviewFrame projectId={projectId} />
+            )}
+          </div>
         </div>
 
-        {/* Right Panel - Timeline/Outputs/Preview */}
-        <div className="w-96 border-l border-border flex flex-col shrink-0">
+        {/* Right Panel - Timeline/Outputs */}
+        <div className="w-80 border-l border-border flex flex-col shrink-0">
           {/* Tabs */}
           <div className="flex border-b border-border shrink-0">
             <button
-              onClick={() => setActiveTab("timeline")}
+              onClick={() => setRightPanelTab("timeline")}
               className={`flex-1 px-4 py-2 text-sm font-medium ${
-                activeTab === "timeline"
+                rightPanelTab === "timeline"
                   ? "text-accent border-b-2 border-accent"
                   : "text-foreground-muted hover:text-foreground"
               }`}
@@ -228,34 +271,21 @@ export default function ProjectPage() {
               Timeline
             </button>
             <button
-              onClick={() => setActiveTab("outputs")}
+              onClick={() => setRightPanelTab("outputs")}
               className={`flex-1 px-4 py-2 text-sm font-medium ${
-                activeTab === "outputs"
+                rightPanelTab === "outputs"
                   ? "text-accent border-b-2 border-accent"
                   : "text-foreground-muted hover:text-foreground"
               }`}
             >
               Outputs
             </button>
-            {project.preview?.preview_supported && (
-              <button
-                onClick={() => setActiveTab("preview")}
-                className={`flex-1 px-4 py-2 text-sm font-medium ${
-                  activeTab === "preview"
-                    ? "text-accent border-b-2 border-accent"
-                    : "text-foreground-muted hover:text-foreground"
-                }`}
-              >
-                Preview
-              </button>
-            )}
           </div>
 
           {/* Tab Content */}
           <div className="flex-1 overflow-auto">
-            {activeTab === "timeline" && <ExecutionTimeline />}
-            {activeTab === "outputs" && <AgentOutputs />}
-            {activeTab === "preview" && <PreviewPanel />}
+            {rightPanelTab === "timeline" && <ExecutionTimeline />}
+            {rightPanelTab === "outputs" && <AgentOutputs />}
           </div>
         </div>
       </div>
