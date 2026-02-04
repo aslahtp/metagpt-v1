@@ -124,7 +124,7 @@ export function ChatPanel({ projectId }: ChatPanelProps) {
                     className={cn(
                       "max-w-[80%] rounded-lg px-3 py-2",
                       msg.role === "user"
-                        ? "bg-accent text-white"
+                        ? "bg-white text-black"
                         : "bg-background-tertiary",
                     )}
                   >

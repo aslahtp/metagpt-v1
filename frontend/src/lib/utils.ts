@@ -71,20 +71,20 @@ export function truncate(str: string, length: number): string {
 
 export function getAgentColor(agent: string): string {
   const colors: Record<string, string> = {
-    manager: "text-blue-400",
-    architect: "text-purple-400",
-    engineer: "text-green-400",
-    qa: "text-orange-400",
+    manager: "text-white",
+    architect: "text-gray-300",
+    engineer: "text-gray-400",
+    qa: "text-gray-500",
   };
   return colors[agent.toLowerCase()] || "text-foreground-muted";
 }
 
 export function getAgentBgColor(agent: string): string {
   const colors: Record<string, string> = {
-    manager: "bg-blue-500/10",
-    architect: "bg-purple-500/10",
-    engineer: "bg-green-500/10",
-    qa: "bg-orange-500/10",
+    manager: "bg-white/10",
+    architect: "bg-gray-300/10",
+    engineer: "bg-gray-400/10",
+    qa: "bg-gray-500/10",
   };
   return colors[agent.toLowerCase()] || "bg-background-tertiary";
 }
@@ -93,7 +93,7 @@ export function getSeverityColor(severity: string): string {
   const colors: Record<string, string> = {
     error: "text-error",
     warning: "text-warning",
-    info: "text-blue-400",
+    info: "text-gray-400",
   };
   return colors[severity.toLowerCase()] || "text-foreground-muted";
 }

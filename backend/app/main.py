@@ -1,5 +1,5 @@
 """
-MetaGPT-Lovable: Main FastAPI Application
+MetaGPT: Main FastAPI Application
 
 A production-ready agentic system with SOP-driven autonomous agents.
 Uses Google Gemini 3 Flash via LangChain for all agent operations.
@@ -38,7 +38,7 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
         description="""
-        MetaGPT-Lovable: An agentic code generation system inspired by Lovable.
+        MetaGPT: An agentic code generation system.
 
         This system uses SOP-driven autonomous agents to transform natural language
         prompts into fully functional codebases.

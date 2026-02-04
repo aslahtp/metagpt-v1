@@ -175,7 +175,7 @@ export default function ProjectPage() {
       <header className="h-14 border-b border-border flex items-center px-4 gap-4 shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-accent" />
-          <span className="font-medium">MetaGPT-Lovable</span>
+          <span className="font-medium">MetaGPT</span>
         </div>
         <div className="h-4 w-px bg-border" />
         <div className="flex-1 min-w-0">

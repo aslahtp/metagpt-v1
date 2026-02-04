@@ -1,1 +1,1 @@
-"""Test suite for MetaGPT-Lovable backend."""
+"""Test suite for MetaGPT backend."""

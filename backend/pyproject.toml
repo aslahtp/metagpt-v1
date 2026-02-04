@@ -1,5 +1,5 @@
 [project]
-name = "metagpt-lovable"
+name = "metagpt"
 version = "0.1.0"
 description = "MetaGPT-style agentic system with SOP-driven autonomous agents"
 readme = "README.md"

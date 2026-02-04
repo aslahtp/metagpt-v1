@@ -54,7 +54,7 @@ yarn-error.log*
 Thumbs.db
 
 # Project files
-projects/
+
 *.db
 
 # TypeScript

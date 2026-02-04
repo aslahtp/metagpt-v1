@@ -1,6 +1,6 @@
-# MetaGPT-Lovable Frontend
+# MetaGPT Frontend
 
-Next.js frontend for the MetaGPT-Lovable agentic system.
+Next.js frontend for the MetaGPT agentic system.
 
 ## Quick Start
 

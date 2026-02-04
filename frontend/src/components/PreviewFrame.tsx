@@ -52,7 +52,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
         />
         <button
           onClick={handleStartPreview}
-          className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-accent text-white hover:bg-accent-hover transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-white text-black hover:bg-gray-200 transition-colors"
         >
           <Play className="h-3 w-3" />
           Load

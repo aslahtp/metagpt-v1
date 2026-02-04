@@ -1,6 +1,6 @@
-# MetaGPT-Lovable Backend
+# MetaGPT Backend
 
-FastAPI backend for the MetaGPT-Lovable agentic system.
+FastAPI backend for the MetaGPT agentic system.
 
 ## Quick Start
 

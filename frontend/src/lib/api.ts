@@ -1,5 +1,5 @@
 /**
- * API client for MetaGPT-Lovable backend.
+ * API client for MetaGPT backend.
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";

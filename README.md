@@ -1,6 +1,6 @@
-# MetaGPT-Lovable
+# MetaGPT
 
-A production-ready MetaGPT-style agentic system inspired by [Lovable](https://lovable.dev). This system uses SOP-driven autonomous agents to transform natural language prompts into fully functional codebases.
+A production-ready agentic code generation system. This system uses SOP-driven autonomous agents to transform natural language prompts into fully functional codebases.
 
 ## Architecture
 

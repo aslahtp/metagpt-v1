@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     )
 
     # Application
-    app_name: str = "MetaGPT-Lovable"
+    app_name: str = "MetaGPT"
     app_version: str = "0.1.0"
     debug: bool = False
 

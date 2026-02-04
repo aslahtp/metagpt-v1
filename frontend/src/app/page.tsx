@@ -80,7 +80,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-accent" />
-            <span className="font-semibold text-lg">MetaGPT-Lovable</span>
+            <span className="font-semibold text-lg">MetaGPT</span>
           </div>
           <nav className="flex items-center gap-4">
             <a
@@ -214,7 +214,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-border py-6 px-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between text-sm text-foreground-muted">
-          <span>MetaGPT-Lovable</span>
+          <span>MetaGPT</span>
           <span>Powered by Gemini 3 Flash</span>
         </div>
       </footer>

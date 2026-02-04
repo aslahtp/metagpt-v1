@@ -10,37 +10,37 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Dark theme inspired by Cursor/Lovable
+        // Monochrome dark theme - black, white, grey
         background: {
-          DEFAULT: "#0a0a0b",
-          secondary: "#111113",
-          tertiary: "#18181b",
+          DEFAULT: "#0a0a0a",
+          secondary: "#121212",
+          tertiary: "#1a1a1a",
         },
         foreground: {
-          DEFAULT: "#fafafa",
-          muted: "#a1a1aa",
-          subtle: "#71717a",
+          DEFAULT: "#ffffff",
+          muted: "#a0a0a0",
+          subtle: "#666666",
         },
         border: {
-          DEFAULT: "#27272a",
-          muted: "#1f1f23",
+          DEFAULT: "#2a2a2a",
+          muted: "#1e1e1e",
         },
         accent: {
-          DEFAULT: "#8b5cf6",
-          hover: "#7c3aed",
-          muted: "#6d28d9",
+          DEFAULT: "#ffffff",
+          hover: "#e0e0e0",
+          muted: "#888888",
         },
         success: {
-          DEFAULT: "#22c55e",
-          muted: "#16a34a",
+          DEFAULT: "#4ade80",
+          muted: "#22c55e",
         },
         warning: {
-          DEFAULT: "#f59e0b",
-          muted: "#d97706",
+          DEFAULT: "#fbbf24",
+          muted: "#f59e0b",
         },
         error: {
-          DEFAULT: "#ef4444",
-          muted: "#dc2626",
+          DEFAULT: "#f87171",
+          muted: "#ef4444",
         },
       },
       fontFamily: {
