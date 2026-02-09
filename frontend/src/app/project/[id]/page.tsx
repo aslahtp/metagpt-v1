@@ -81,7 +81,7 @@ export default function ProjectPage() {
     setCurrentAgent,
   ]);
 
-  // Run pipeline
+  // Run pipeline with fire-and-forget + polling for real-time progress
   const handleRunPipeline = async () => {
     if (pipelineRunning) return;
 
@@ -90,9 +90,14 @@ export default function ProjectPage() {
     setCurrentAgent("manager");
     setProgress(0);
 
-    try {
-      // Use polling approach for simplicity
-      const pollStatus = async () => {
+    // Fire the pipeline in the background (don't await — it blocks until done)
+    runPipeline(projectId).catch((err) => {
+      console.error("Pipeline run error:", err);
+    });
+
+    // Poll for status updates — the backend persists state after each agent
+    const poll = async () => {
+      try {
         const projectData = await getProject(projectId);
         setProject(projectData);
 
@@ -102,33 +107,40 @@ export default function ProjectPage() {
           setCurrentAgent(status.current_agent);
         }
 
-        // Check if completed or errored
-        if (status?.stage === "completed" || status?.stage === "error") {
+        if (status?.stage === "completed") {
           setPipelineRunning(false);
 
-          if (status.stage === "completed") {
-            // Load file tree
-            try {
-              const tree = await getFileTree(projectId);
-              setFileTree(tree.root);
-            } catch {
-              // Handle error
-            }
+          // Load file tree
+          try {
+            const tree = await getFileTree(projectId);
+            setFileTree(tree.root);
+          } catch {
+            // Files may not exist yet
           }
-          return;
+
+          // Set generated files
+          if (projectData.state.engineer_output?.files) {
+            setGeneratedFiles(projectData.state.engineer_output.files);
+          }
+          return; // Stop polling
+        }
+
+        if (status?.stage === "error") {
+          setPipelineRunning(false);
+          setError(status.message || "Pipeline execution failed");
+          return; // Stop polling
         }
 
         // Continue polling
-        setTimeout(pollStatus, 1000);
-      };
+        setTimeout(poll, 1500);
+      } catch {
+        // Retry on transient errors
+        setTimeout(poll, 2000);
+      }
+    };
 
-      // Start the pipeline
-      await runPipeline(projectId);
-      pollStatus();
-    } catch (err) {
-      setError("Pipeline execution failed");
-      setPipelineRunning(false);
-    }
+    // Start polling after a brief delay to let the backend initialize
+    setTimeout(poll, 500);
   };
 
   // Fetch file content

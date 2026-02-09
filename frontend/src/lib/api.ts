@@ -187,12 +187,12 @@ export async function getFileTree(projectId: string): Promise<FileTree> {
 
 export async function getFileContent(
   projectId: string,
-  filePath: string,
+  filePath: string
 ): Promise<{ path: string; content: string; language: string }> {
   // Remove leading slash if present and don't encode slashes
   const cleanPath = filePath.replace(/^\/+/, "");
   const res = await fetch(
-    `${API_BASE}/api/v1/files/${projectId}/content/${cleanPath}`,
+    `${API_BASE}/api/v1/files/${projectId}/content/${cleanPath}`
   );
   if (!res.ok) throw new Error("Failed to get file content");
   return res.json();
@@ -200,7 +200,7 @@ export async function getFileContent(
 
 export async function sendChatMessage(
   projectId: string,
-  message: string,
+  message: string
 ): Promise<{
   message: ChatMessage;
   agents_executed: string[];
@@ -217,35 +217,74 @@ export async function sendChatMessage(
 }
 
 export async function getPipelineArtifacts(
-  projectId: string,
+  projectId: string
 ): Promise<{ project_id: string; artifacts: Record<string, unknown> }> {
   const res = await fetch(`${API_BASE}/api/v1/pipeline/${projectId}/artifacts`);
   if (!res.ok) throw new Error("Failed to get artifacts");
   return res.json();
 }
 
-export function streamPipeline(
+export async function streamPipeline(
   projectId: string,
-  onEvent: (event: { type: string; data: unknown }) => void,
-  onError: (error: Error) => void,
-): () => void {
-  const eventSource = new EventSource(
-    `${API_BASE}/api/v1/pipeline/${projectId}/stream`,
-  );
+  onEvent: (event: { type: string; data: Record<string, unknown> }) => void,
+  onError: (error: Error) => void
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/v1/pipeline/${projectId}/stream`, {
+    method: "POST",
+  });
 
-  eventSource.onmessage = (e) => {
-    try {
-      const data = JSON.parse(e.data);
-      onEvent({ type: e.type || "message", data });
-    } catch {
-      console.error("Failed to parse event data");
+  if (!res.ok) {
+    onError(new Error("Failed to start pipeline stream"));
+    return;
+  }
+
+  if (!res.body) {
+    onError(new Error("No response body from stream"));
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE events are separated by double newlines
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+
+        let eventType = "message";
+        const dataLines: string[] = [];
+
+        for (const line of part.split("\n")) {
+          if (line.startsWith("event:")) {
+            eventType = line.slice(6).trim();
+          } else if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trim());
+          }
+          // Ignore comments (lines starting with :) and other fields
+        }
+
+        if (dataLines.length > 0) {
+          const data = dataLines.join("\n");
+          try {
+            const parsed = JSON.parse(data);
+            onEvent({ type: eventType, data: parsed });
+          } catch {
+            console.error("Failed to parse SSE data:", data);
+          }
+        }
+      }
     }
-  };
-
-  eventSource.onerror = () => {
-    onError(new Error("Pipeline stream error"));
-    eventSource.close();
-  };
-
-  return () => eventSource.close();
+  } catch (err) {
+    onError(err instanceof Error ? err : new Error("Stream connection error"));
+  }
 }

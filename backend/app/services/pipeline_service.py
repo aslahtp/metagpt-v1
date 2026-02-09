@@ -58,6 +58,9 @@ class PipelineService:
         """
         Run the complete agent pipeline for a project.
 
+        Streams through agents internally and persists state after each one
+        so that polling clients can see real-time progress.
+
         Args:
             project_id: Project identifier
             prompt: User prompt
@@ -71,25 +74,73 @@ class PipelineService:
         if not project:
             project = await self.project_store.create(project_id, prompt)
 
-        # Update status to running
+        agent_order = ["manager", "architect", "engineer", "qa"]
+        started_at = datetime.utcnow()
+
+        # Update status to running — manager is about to start
         await self.project_store.update_state(
             project_id,
             pipeline_status=PipelineStatus(
                 stage=PipelineStage.MANAGER,
                 progress=0,
-                current_agent="ManagerAgent",
-                message="Starting pipeline...",
-                started_at=datetime.utcnow(),
+                current_agent="manager",
+                message="Running Manager agent...",
+                started_at=started_at,
             ),
         )
 
         try:
-            # Run the pipeline
-            final_state = await self.pipeline.run(project_id, prompt, context)
+            # Stream through agents, persisting state after each one
+            async for event in self.pipeline.stream(project_id, prompt, context):
+                node_name = event.get("node", "")
+                update = event.get("update", {})
+                progress = update.get("progress", 0)
 
-            # Process the results
-            project = await self._process_pipeline_results(project_id, final_state)
+                idx = agent_order.index(node_name) if node_name in agent_order else -1
+                is_last = idx == len(agent_order) - 1
 
+                if is_last:
+                    # Last agent (QA) — mark pipeline as completed
+                    await self.project_store.update_state(
+                        project_id,
+                        manager_output=update.get("manager_output"),
+                        architect_output=update.get("architect_output"),
+                        engineer_output=update.get("engineer_output"),
+                        qa_output=update.get("qa_output"),
+                        pipeline_status=PipelineStatus(
+                            stage=PipelineStage.COMPLETED,
+                            progress=100,
+                            current_agent=None,
+                            message="Pipeline completed successfully",
+                            started_at=started_at,
+                            completed_at=datetime.utcnow(),
+                        ),
+                    )
+                else:
+                    # Intermediate agent — set current_agent to the NEXT agent
+                    next_agent = agent_order[idx + 1]
+                    await self.project_store.update_state(
+                        project_id,
+                        manager_output=update.get("manager_output"),
+                        architect_output=update.get("architect_output"),
+                        engineer_output=update.get("engineer_output"),
+                        qa_output=update.get("qa_output"),
+                        pipeline_status=PipelineStatus(
+                            stage=PipelineStage(next_agent),
+                            progress=progress,
+                            current_agent=next_agent,
+                            message=f"Running {next_agent.title()} agent...",
+                            started_at=started_at,
+                        ),
+                    )
+
+                # Write files if engineer completed
+                if node_name == "engineer" and update.get("engineer_output"):
+                    for file_spec in update["engineer_output"].files:
+                        await self.file_store.write_file(project_id, file_spec)
+
+            # Return final project
+            project = await self.project_store.get(project_id)
             return project
 
         except Exception as e:
@@ -137,6 +188,22 @@ class PipelineService:
                 node_name = event.get("node", "")
                 update = event.get("update", {})
 
+                # Persist state before yielding so it's ready if frontend fetches
+                await self._persist_agent_output(project_id, node_name, update)
+
+                # Write files if engineer completed (before yielding events)
+                file_events = []
+                if node_name == "engineer" and update.get("engineer_output"):
+                    files = update["engineer_output"].files
+                    for file_spec in files:
+                        await self.file_store.write_file(project_id, file_spec)
+                        file_events.append({
+                            "type": "file_generated",
+                            "file_path": file_spec.file_path,
+                            "language": file_spec.file_language,
+                            "timestamp": datetime.utcnow().isoformat(),
+                        })
+
                 # Yield agent completion event
                 yield {
                     "type": "agent_complete",
@@ -145,20 +212,20 @@ class PipelineService:
                     "timestamp": event.get("timestamp"),
                 }
 
-                # Persist state after each agent
-                await self._persist_agent_output(project_id, node_name, update)
+                # Yield file generation events
+                for fe in file_events:
+                    yield fe
 
-                # If engineer completed, write files
-                if node_name == "engineer" and update.get("engineer_output"):
-                    files = update["engineer_output"].files
-                    for file_spec in files:
-                        await self.file_store.write_file(project_id, file_spec)
-                        yield {
-                            "type": "file_generated",
-                            "file_path": file_spec.file_path,
-                            "language": file_spec.file_language,
-                            "timestamp": datetime.utcnow().isoformat(),
-                        }
+            # Persist final completed status
+            await self.project_store.update_state(
+                project_id,
+                pipeline_status=PipelineStatus(
+                    stage=PipelineStage.COMPLETED,
+                    progress=100,
+                    message="Pipeline completed successfully",
+                    completed_at=datetime.utcnow(),
+                ),
+            )
 
             yield {
                 "type": "pipeline_complete",
@@ -167,6 +234,14 @@ class PipelineService:
             }
 
         except Exception as e:
+            await self.project_store.update_state(
+                project_id,
+                pipeline_status=PipelineStatus(
+                    stage=PipelineStage.ERROR,
+                    progress=0,
+                    message=str(e),
+                ),
+            )
             yield {
                 "type": "pipeline_error",
                 "error": str(e),
