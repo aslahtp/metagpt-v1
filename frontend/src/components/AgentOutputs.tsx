@@ -18,6 +18,8 @@ import {
   getSeverityColor,
 } from "@/lib/utils";
 
+const DEFAULT_VISIBLE_COUNT = 5;
+
 export function AgentOutputs() {
   const { project, expandedAgents, toggleAgentExpanded } = useProjectStore();
 
@@ -56,8 +58,10 @@ export function AgentOutputs() {
               <h4 className="text-xs font-medium text-foreground-muted mb-2">
                 Requirements ({manager_output.requirements.length})
               </h4>
-              <div className="space-y-1">
-                {manager_output.requirements.slice(0, 5).map((req) => (
+              <ExpandableList
+                items={manager_output.requirements}
+                label="requirements"
+                renderItem={(req) => (
                   <div
                     key={req.id}
                     className="text-xs p-2 bg-background-tertiary rounded"
@@ -70,13 +74,8 @@ export function AgentOutputs() {
                     </div>
                     <p className="mt-1">{req.description}</p>
                   </div>
-                ))}
-                {manager_output.requirements.length > 5 && (
-                  <p className="text-xs text-foreground-subtle">
-                    +{manager_output.requirements.length - 5} more requirements
-                  </p>
                 )}
-              </div>
+              />
             </div>
 
             {/* Reasoning */}
@@ -113,8 +112,10 @@ export function AgentOutputs() {
               <h4 className="text-xs font-medium text-foreground-muted mb-2">
                 Components
               </h4>
-              <div className="space-y-1">
-                {architect_output.components.map((comp, i) => (
+              <ExpandableList
+                items={architect_output.components}
+                label="components"
+                renderItem={(comp, i) => (
                   <div
                     key={i}
                     className="text-xs p-2 bg-background-tertiary rounded"
@@ -129,8 +130,8 @@ export function AgentOutputs() {
                       {comp.description}
                     </p>
                   </div>
-                ))}
-              </div>
+                )}
+              />
             </div>
 
             {/* Data Flow */}
@@ -176,8 +177,10 @@ export function AgentOutputs() {
               <h4 className="text-xs font-medium text-foreground-muted mb-2">
                 Generated Files
               </h4>
-              <div className="max-h-40 overflow-auto space-y-1">
-                {engineer_output.files.map((file, i) => (
+              <ExpandableList
+                items={engineer_output.files}
+                label="files"
+                renderItem={(file, i) => (
                   <div
                     key={i}
                     className="text-xs p-2 bg-background-tertiary rounded flex items-center gap-2"
@@ -187,8 +190,8 @@ export function AgentOutputs() {
                       ({file.file_language})
                     </span>
                   </div>
-                ))}
-              </div>
+                )}
+              />
             </div>
 
             {/* Setup Instructions */}
@@ -237,7 +240,7 @@ export function AgentOutputs() {
                         ? "bg-success"
                         : qa_output.quality_score >= 60
                         ? "bg-warning"
-                        : "bg-error",
+                        : "bg-error"
                     )}
                     style={{ width: `${qa_output.quality_score}%` }}
                   />
@@ -261,8 +264,10 @@ export function AgentOutputs() {
                 <h4 className="text-xs font-medium text-foreground-muted mb-2">
                   Validation Notes
                 </h4>
-                <div className="space-y-1">
-                  {qa_output.validation_notes.slice(0, 5).map((note, i) => (
+                <ExpandableList
+                  items={qa_output.validation_notes}
+                  label="notes"
+                  renderItem={(note, i) => (
                     <div
                       key={i}
                       className="text-xs p-2 bg-background-tertiary rounded flex items-start gap-2"
@@ -275,8 +280,8 @@ export function AgentOutputs() {
                         </p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )}
+                />
               </div>
             )}
 
@@ -321,7 +326,7 @@ function AgentSection({
     <div
       className={cn(
         "rounded-lg border border-border overflow-hidden",
-        getAgentBgColor(id),
+        getAgentBgColor(id)
       )}
     >
       <button
@@ -345,6 +350,45 @@ function AgentSection({
         )}
       </button>
       {isExpanded && hasOutput && <div className="px-3 pb-3">{children}</div>}
+    </div>
+  );
+}
+
+function ExpandableList<T>({
+  items,
+  label,
+  limit = DEFAULT_VISIBLE_COUNT,
+  renderItem,
+}: {
+  items: T[];
+  label: string;
+  limit?: number;
+  renderItem: (item: T, index: number) => React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hiddenCount = items.length - limit;
+  const visibleItems = expanded ? items : items.slice(0, limit);
+
+  return (
+    <div className="space-y-1">
+      {visibleItems.map((item, i) => renderItem(item, i))}
+      {hiddenCount > 0 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full text-xs text-accent hover:text-accent/80 flex items-center gap-1 py-1.5 px-2 rounded hover:bg-accent/5 transition-colors"
+        >
+          {expanded ? (
+            <>
+              <ChevronDown className="h-3 w-3" />
+              Show less
+            </>
+          ) : (
+            <>
+              <ChevronRight className="h-3 w-3" />+{hiddenCount} more {label}
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }
@@ -403,7 +447,7 @@ function ApprovalBadge({ status }: { status: string }) {
     <div
       className={cn(
         "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium",
-        config.color,
+        config.color
       )}
     >
       <Icon className="h-3 w-3" />
