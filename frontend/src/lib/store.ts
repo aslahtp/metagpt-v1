@@ -46,6 +46,10 @@ interface ProjectStore {
   previewEnabled: boolean;
   setPreviewEnabled: (enabled: boolean) => void;
 
+  // Preview frame state
+  previewInitialized: boolean;
+  setPreviewInitialized: (initialized: boolean) => void;
+
   // Reset
   reset: () => void;
 }
@@ -106,6 +110,11 @@ export const useProjectStore = create<ProjectStore>((set) => ({
   previewEnabled: false,
   setPreviewEnabled: (enabled) => set({ previewEnabled: enabled }),
 
+  // Preview frame state
+  previewInitialized: false,
+  setPreviewInitialized: (initialized) =>
+    set({ previewInitialized: initialized }),
+
   // Reset
   reset: () =>
     set({
@@ -121,5 +130,6 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       chatMessages: [],
       expandedAgents: new Set(["manager", "architect", "engineer", "qa"]),
       previewEnabled: false,
+      previewInitialized: false,
     }),
 }));

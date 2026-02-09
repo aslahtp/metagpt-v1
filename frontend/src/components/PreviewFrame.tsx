@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useProjectStore } from "@/lib/store";
 import {
   ExternalLink,
   RefreshCw,
@@ -17,7 +18,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const [previewUrl, setPreviewUrl] = useState("http://localhost:5173");
   const [iframeKey, setIframeKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true);
+  const { previewInitialized, setPreviewInitialized } = useProjectStore();
 
   const handleRefresh = () => {
     setIframeKey((k) => k + 1);
@@ -26,7 +27,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
 
   const handleLoad = () => {
     setIsLoading(false);
-    setShowInstructions(false);
+    setPreviewInitialized(true);
   };
 
   const handleOpenExternal = () => {
@@ -34,7 +35,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   };
 
   const handleStartPreview = () => {
-    setShowInstructions(false);
+    setPreviewInitialized(true);
     setIsLoading(true);
     setIframeKey((k) => k + 1);
   };
@@ -79,7 +80,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
 
       {/* Preview Area */}
       <div className="flex-1 relative bg-white">
-        {showInstructions ? (
+        {!previewInitialized ? (
           <div className="absolute inset-0 flex items-center justify-center bg-background-tertiary">
             <div className="max-w-md text-center p-8">
               <div className="w-16 h-16 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-4">

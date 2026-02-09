@@ -178,7 +178,7 @@ export default function ProjectPage() {
           <span className="font-medium">MetaGPT</span>
         </div>
         <div className="h-4 w-px bg-border" />
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0" title={project.prompt}>
           <h1 className="text-sm font-medium truncate">
             {project.name || "New Project"}
           </h1>
@@ -248,11 +248,14 @@ export default function ProjectPage() {
 
           {/* Center Content */}
           <div className="flex-1 overflow-auto">
-            {centerView === "code" ? (
+            <div className={centerView === "code" ? "h-full block" : "hidden"}>
               <CodeViewer />
-            ) : (
+            </div>
+            <div
+              className={centerView === "preview" ? "h-full block" : "hidden"}
+            >
               <PreviewFrame projectId={projectId} />
-            )}
+            </div>
           </div>
         </div>
 
