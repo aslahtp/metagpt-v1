@@ -37,7 +37,7 @@ export default function ProjectPage() {
   } = useProjectStore();
 
   const [rightPanelTab, setRightPanelTab] = useState<"timeline" | "outputs">(
-    "timeline",
+    "timeline"
   );
   const [centerView, setCenterView] = useState<"code" | "preview">("code");
   const [error, setError] = useState<string | null>(null);
@@ -247,7 +247,7 @@ export default function ProjectPage() {
           )}
 
           {/* Center Content */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-auto">
             {centerView === "code" ? (
               <CodeViewer />
             ) : (
