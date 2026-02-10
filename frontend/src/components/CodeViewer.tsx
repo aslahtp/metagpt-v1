@@ -1,9 +1,13 @@
 "use client";
 
 import { useProjectStore } from "@/lib/store";
-import { Highlight, themes } from "prism-react-renderer";
+import dynamic from "next/dynamic";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
+
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
+  ssr: false,
+}) as any;
 
 export function CodeViewer() {
   const { selectedFile, fileContent, fileLanguage, generatedFiles } =
@@ -16,7 +20,7 @@ export function CodeViewer() {
     generatedFiles.find((f) => f.file_path === selectedFile)?.file_content ||
     null;
 
-  const language = fileLanguage || "text";
+  const language = fileLanguage || "plaintext";
 
   const handleCopy = async () => {
     if (content) {
@@ -48,7 +52,7 @@ export function CodeViewer() {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex flex-col h-full w-full min-w-0 overflow-hidden">
       {/* File Header */}
       <div className="h-10 px-4 border-b border-border flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
@@ -73,32 +77,21 @@ export function CodeViewer() {
       </div>
 
       {/* Code Content */}
-      <div className="flex-1 overflow-auto">
-        <Highlight
-          theme={themes.nightOwl}
-          code={content}
-          language={language as any}
-        >
-          {({ className, style, tokens, getLineProps, getTokenProps }) => (
-            <pre
-              className={`${className} p-4 text-sm font-mono leading-relaxed`}
-              style={{ ...style, background: "transparent" }}
-            >
-              {tokens.map((line, i) => (
-                <div key={i} {...getLineProps({ line })} className="table-row">
-                  <span className="table-cell pr-4 text-foreground-subtle select-none text-right w-10">
-                    {i + 1}
-                  </span>
-                  <span className="table-cell">
-                    {line.map((token, key) => (
-                      <span key={key} {...getTokenProps({ token })} />
-                    ))}
-                  </span>
-                </div>
-              ))}
-            </pre>
-          )}
-        </Highlight>
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
+        <MonacoEditor
+          value={content}
+          language={language}
+          theme="vs-dark"
+          options={{
+            readOnly: true,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            fontSize: 13,
+            lineNumbers: "on",
+            automaticLayout: true,
+            wordWrap: "on",
+          }}
+        />
       </div>
     </div>
   );

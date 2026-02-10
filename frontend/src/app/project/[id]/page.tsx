@@ -289,12 +289,22 @@ export default function ProjectPage() {
           )}
 
           {/* Center Content */}
-          <div className="flex-1 overflow-auto">
-            <div className={centerView === "code" ? "h-full block" : "hidden"}>
+          <div className="flex-1 flex flex-col min-h-0 min-w-0">
+            <div
+              className={
+                centerView === "code"
+                  ? "flex-1 min-h-0 min-w-0 flex"
+                  : "hidden"
+              }
+            >
               <CodeViewer />
             </div>
             <div
-              className={centerView === "preview" ? "h-full block" : "hidden"}
+              className={
+                centerView === "preview"
+                  ? "flex-1 min-h-0 min-w-0 flex"
+                  : "hidden"
+              }
             >
               <PreviewFrame projectId={projectId} />
             </div>
