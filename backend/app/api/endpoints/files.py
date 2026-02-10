@@ -1,8 +1,11 @@
 """File management endpoints."""
 
+import io
+import zipfile
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.schemas.files import FileTree, GeneratedFile
@@ -166,6 +169,60 @@ async def delete_file(project_id: str, file_path: str) -> dict[str, Any]:
         "success": True,
         "deleted": file_path,
     }
+
+
+@router.get("/{project_id}/download")
+async def download_project_zip(project_id: str) -> StreamingResponse:
+    """
+    Download all project files as a zip archive.
+
+    Returns a streaming zip file containing the entire generated codebase.
+    """
+    service = PipelineService()
+    project = await service.get_project(project_id)
+
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+
+    from app.storage import FileStore
+    file_store = FileStore()
+
+    files_dir = file_store._get_project_files_dir(project_id)
+
+    if not files_dir.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No files found for project {project_id}",
+        )
+
+    # Determine a clean archive name from the project
+    archive_name = (project.name or project_id).strip()
+    # Sanitize for use as a filename
+    archive_name = "".join(
+        c if c.isalnum() or c in ("-", "_", " ") else "_" for c in archive_name
+    ).strip() or project_id
+
+    # Build the zip in memory
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for file_path in sorted(files_dir.rglob("*")):
+            if file_path.is_file():
+                relative = file_path.relative_to(files_dir)
+                arcname = f"{archive_name}/{str(relative).replace(chr(92), '/')}"
+                zf.write(file_path, arcname)
+
+    zip_buffer.seek(0)
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{archive_name}.zip"',
+        },
+    )
 
 
 @router.get("/{project_id}/generated")

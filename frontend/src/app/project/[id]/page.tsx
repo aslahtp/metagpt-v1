@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Sparkles, Code, Monitor } from "lucide-react";
+import { Sparkles, Code, Monitor, Download } from "lucide-react";
 import {
   getProject,
   runPipeline,
   getFileTree,
   getFileContent,
+  downloadProjectZip,
 } from "@/lib/api";
 import { useProjectStore } from "@/lib/store";
 import { ExecutionTimeline } from "@/components/ExecutionTimeline";
@@ -41,6 +42,7 @@ export default function ProjectPage() {
   );
   const [centerView, setCenterView] = useState<"code" | "preview">("code");
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   // Fetch project data
   const fetchProject = useCallback(async () => {
@@ -158,6 +160,19 @@ export default function ProjectPage() {
     }
   };
 
+  // Download project as zip
+  const handleDownloadZip = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      await downloadProjectZip(projectId);
+    } catch {
+      setError("Failed to download project files");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   // Initial load
   useEffect(() => {
     fetchProject().then((p) => {
@@ -215,8 +230,23 @@ export default function ProjectPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - File Explorer */}
         <div className="w-64 border-r border-border flex flex-col shrink-0">
-          <div className="p-3 border-b border-border">
+          <div className="p-3 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-medium">Files</h2>
+            {project.state.pipeline_status?.stage === "completed" && (
+              <button
+                onClick={handleDownloadZip}
+                disabled={downloading}
+                title="Download as ZIP"
+                className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium text-foreground-muted hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {downloading ? (
+                  <div className="h-3.5 w-3.5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                <span>{downloading ? "Zipping..." : "ZIP"}</span>
+              </button>
+            )}
           </div>
           <div className="flex-1 overflow-auto">
             <FileExplorer onSelectFile={handleSelectFile} />

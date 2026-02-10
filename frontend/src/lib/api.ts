@@ -224,6 +224,31 @@ export async function getPipelineArtifacts(
   return res.json();
 }
 
+export async function downloadProjectZip(projectId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/v1/files/${projectId}/download`);
+  if (!res.ok) throw new Error("Failed to download project");
+
+  const blob = await res.blob();
+
+  // Extract filename from Content-Disposition header, fallback to project id
+  const disposition = res.headers.get("Content-Disposition");
+  let filename = `${projectId}.zip`;
+  if (disposition) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match) filename = match[1];
+  }
+
+  // Create a temporary link to trigger the browser download
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export async function streamPipeline(
   projectId: string,
   onEvent: (event: { type: string; data: Record<string, unknown> }) => void,
