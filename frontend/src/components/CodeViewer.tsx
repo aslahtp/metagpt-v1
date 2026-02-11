@@ -1,18 +1,20 @@
 "use client";
 
 import { useProjectStore } from "@/lib/store";
+import { registerCustomThemes } from "@/lib/editorThemes";
 import dynamic from "next/dynamic";
 import { Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
 }) as any;
 
 export function CodeViewer() {
-  const { selectedFile, fileContent, fileLanguage, generatedFiles } =
+  const { selectedFile, fileContent, fileLanguage, generatedFiles, editorTheme } =
     useProjectStore();
   const [copied, setCopied] = useState(false);
+  const themesRegistered = useRef(false);
 
   // Try to get content from generated files if not loaded
   const content =
@@ -27,6 +29,14 @@ export function CodeViewer() {
       await navigator.clipboard.writeText(content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  /** Register custom themes before Monaco mounts */
+  const handleBeforeMount = (monaco: any) => {
+    if (!themesRegistered.current) {
+      registerCustomThemes(monaco);
+      themesRegistered.current = true;
     }
   };
 
@@ -81,7 +91,8 @@ export function CodeViewer() {
         <MonacoEditor
           value={content}
           language={language}
-          theme="vs-dark"
+          theme={editorTheme}
+          beforeMount={handleBeforeMount}
           options={{
             readOnly: true,
             minimap: { enabled: false },

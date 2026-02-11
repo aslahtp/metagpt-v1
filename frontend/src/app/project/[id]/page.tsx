@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import { Sparkles, Code, Monitor, Download } from "lucide-react";
+import {
+  Sparkles,
+  Code,
+  Monitor,
+  Download,
+  Settings,
+  Check,
+  Palette,
+} from "lucide-react";
 import {
   getProject,
   runPipeline,
@@ -11,6 +19,7 @@ import {
   downloadProjectZip,
 } from "@/lib/api";
 import { useProjectStore } from "@/lib/store";
+import { EDITOR_THEMES } from "@/lib/editorThemes";
 import { ExecutionTimeline } from "@/components/ExecutionTimeline";
 import { FileExplorer } from "@/components/FileExplorer";
 import { CodeViewer } from "@/components/CodeViewer";
@@ -37,12 +46,33 @@ export default function ProjectPage() {
     setGeneratedFiles,
   } = useProjectStore();
 
+  const { editorTheme, setEditorTheme } = useProjectStore();
+
   const [rightPanelTab, setRightPanelTab] = useState<"timeline" | "outputs">(
     "timeline"
   );
   const [centerView, setCenterView] = useState<"code" | "preview">("code");
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Close settings dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target as Node)
+      ) {
+        setSettingsOpen(false);
+      }
+    }
+    if (settingsOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [settingsOpen]);
 
   // Fetch project data
   const fetchProject = useCallback(async () => {
@@ -232,21 +262,112 @@ export default function ProjectPage() {
         <div className="w-64 border-r border-border flex flex-col shrink-0">
           <div className="p-3 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-medium">Files</h2>
-            {project.state.pipeline_status?.stage === "completed" && (
-              <button
-                onClick={handleDownloadZip}
-                disabled={downloading}
-                title="Download as ZIP"
-                className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium text-foreground-muted hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {downloading ? (
-                  <div className="h-3.5 w-3.5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-                ) : (
-                  <Download className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1">
+              {project.state.pipeline_status?.stage === "completed" && (
+                <button
+                  onClick={handleDownloadZip}
+                  disabled={downloading}
+                  title="Download as ZIP"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium text-foreground-muted hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {downloading ? (
+                    <div className="h-3.5 w-3.5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  <span>{downloading ? "Zipping..." : "ZIP"}</span>
+                </button>
+              )}
+
+              {/* Settings Button */}
+              <div className="relative" ref={settingsRef}>
+                <button
+                  onClick={() => setSettingsOpen(!settingsOpen)}
+                  className={`p-1.5 rounded transition-colors ${
+                    settingsOpen
+                      ? "bg-accent/10 text-accent"
+                      : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+                  }`}
+                  title="Settings"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </button>
+
+                {/* Settings Dropdown */}
+                {settingsOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-64 z-50 rounded-xl border border-border bg-background-secondary shadow-2xl shadow-black/40 overflow-hidden animate-in">
+                    {/* Header */}
+                    <div className="px-3 py-2.5 border-b border-border">
+                      <div className="flex items-center gap-2">
+                        <Settings className="h-3.5 w-3.5 text-foreground-subtle" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">
+                          Settings
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Editor Theme Section */}
+                    <div className="p-2">
+                      <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
+                        <Palette className="h-3.5 w-3.5 text-accent" />
+                        <span className="text-xs font-medium text-foreground">
+                          Editor Theme
+                        </span>
+                      </div>
+
+                      <div className="max-h-72 overflow-y-auto space-y-0.5">
+                        {EDITOR_THEMES.map((theme) => (
+                          <button
+                            key={theme.id}
+                            onClick={() => {
+                              setEditorTheme(theme.id);
+                            }}
+                            className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-all duration-150 group ${
+                              editorTheme === theme.id
+                                ? "bg-accent/10"
+                                : "hover:bg-background-tertiary"
+                            }`}
+                          >
+                            {/* Color Swatch */}
+                            <div
+                              className="w-5 h-5 rounded-md shrink-0 border border-white/10 flex items-center justify-center overflow-hidden"
+                              style={{ backgroundColor: theme.swatch[0] }}
+                            >
+                              <div className="flex flex-col items-center gap-px">
+                                <div
+                                  className="w-2.5 h-[2px] rounded-full"
+                                  style={{ backgroundColor: theme.swatch[2] }}
+                                />
+                                <div
+                                  className="w-2 h-[2px] rounded-full opacity-60"
+                                  style={{ backgroundColor: theme.swatch[1] }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Label */}
+                            <span
+                              className={`text-xs font-medium flex-1 ${
+                                editorTheme === theme.id
+                                  ? "text-accent"
+                                  : "text-foreground-muted group-hover:text-foreground"
+                              }`}
+                            >
+                              {theme.label}
+                            </span>
+
+                            {/* Check Mark */}
+                            {editorTheme === theme.id && (
+                              <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
-                <span>{downloading ? "Zipping..." : "ZIP"}</span>
-              </button>
-            )}
+              </div>
+            </div>
           </div>
           <div className="flex-1 overflow-auto">
             <FileExplorer onSelectFile={handleSelectFile} />

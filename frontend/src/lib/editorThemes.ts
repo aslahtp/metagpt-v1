@@ -1,0 +1,375 @@
+/**
+ * Monaco Editor theme definitions.
+ * Each custom theme is defined with a base (vs, vs-dark, hc-black)
+ * and color/token overrides for popular editor themes.
+ */
+
+import type { editor } from "monaco-editor";
+
+export interface EditorThemeOption {
+  id: string;
+  label: string;
+  base: editor.BuiltinTheme;
+  /** Preview swatch colors: [background, foreground, accent] */
+  swatch: [string, string, string];
+  /** If true, this is a built-in theme and doesn't need defineTheme */
+  builtin?: boolean;
+  /** Theme data for defineTheme (not needed for builtins) */
+  data?: editor.IStandaloneThemeData;
+}
+
+export const EDITOR_THEMES: EditorThemeOption[] = [
+  // ── Built-in ──
+  {
+    id: "vs-dark",
+    label: "VS Dark",
+    base: "vs-dark",
+    swatch: ["#1e1e1e", "#d4d4d4", "#569cd6"],
+    builtin: true,
+  },
+  {
+    id: "vs",
+    label: "VS Light",
+    base: "vs",
+    swatch: ["#ffffff", "#000000", "#0000ff"],
+    builtin: true,
+  },
+  {
+    id: "hc-black",
+    label: "High Contrast",
+    base: "hc-black",
+    swatch: ["#000000", "#ffffff", "#ffff00"],
+    builtin: true,
+  },
+
+  // ── Custom ──
+  {
+    id: "github-dark",
+    label: "GitHub Dark",
+    base: "vs-dark",
+    swatch: ["#0d1117", "#c9d1d9", "#79c0ff"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "8b949e", fontStyle: "italic" },
+        { token: "keyword", foreground: "ff7b72" },
+        { token: "string", foreground: "a5d6ff" },
+        { token: "number", foreground: "79c0ff" },
+        { token: "type", foreground: "ffa657" },
+        { token: "function", foreground: "d2a8ff" },
+        { token: "variable", foreground: "ffa657" },
+        { token: "constant", foreground: "79c0ff" },
+        { token: "tag", foreground: "7ee787" },
+        { token: "attribute.name", foreground: "79c0ff" },
+        { token: "attribute.value", foreground: "a5d6ff" },
+      ],
+      colors: {
+        "editor.background": "#0d1117",
+        "editor.foreground": "#c9d1d9",
+        "editor.lineHighlightBackground": "#161b22",
+        "editor.selectionBackground": "#264f78",
+        "editorCursor.foreground": "#79c0ff",
+        "editorLineNumber.foreground": "#484f58",
+        "editorLineNumber.activeForeground": "#c9d1d9",
+        "editor.selectionHighlightBackground": "#3fb95040",
+        "editorIndentGuide.background": "#21262d",
+        "editorIndentGuide.activeBackground": "#30363d",
+      },
+    },
+  },
+  {
+    id: "monokai",
+    label: "Monokai",
+    base: "vs-dark",
+    swatch: ["#272822", "#f8f8f2", "#a6e22e"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "75715e", fontStyle: "italic" },
+        { token: "keyword", foreground: "f92672" },
+        { token: "string", foreground: "e6db74" },
+        { token: "number", foreground: "ae81ff" },
+        { token: "type", foreground: "66d9ef", fontStyle: "italic" },
+        { token: "function", foreground: "a6e22e" },
+        { token: "variable", foreground: "f8f8f2" },
+        { token: "constant", foreground: "ae81ff" },
+        { token: "tag", foreground: "f92672" },
+        { token: "attribute.name", foreground: "a6e22e" },
+        { token: "attribute.value", foreground: "e6db74" },
+      ],
+      colors: {
+        "editor.background": "#272822",
+        "editor.foreground": "#f8f8f2",
+        "editor.lineHighlightBackground": "#3e3d32",
+        "editor.selectionBackground": "#49483e",
+        "editorCursor.foreground": "#f8f8f0",
+        "editorLineNumber.foreground": "#90908a",
+        "editorLineNumber.activeForeground": "#c2c2bf",
+        "editorIndentGuide.background": "#464741",
+        "editorIndentGuide.activeBackground": "#767771",
+      },
+    },
+  },
+  {
+    id: "dracula",
+    label: "Dracula",
+    base: "vs-dark",
+    swatch: ["#282a36", "#f8f8f2", "#bd93f9"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "6272a4", fontStyle: "italic" },
+        { token: "keyword", foreground: "ff79c6" },
+        { token: "string", foreground: "f1fa8c" },
+        { token: "number", foreground: "bd93f9" },
+        { token: "type", foreground: "8be9fd", fontStyle: "italic" },
+        { token: "function", foreground: "50fa7b" },
+        { token: "variable", foreground: "f8f8f2" },
+        { token: "constant", foreground: "bd93f9" },
+        { token: "tag", foreground: "ff79c6" },
+        { token: "attribute.name", foreground: "50fa7b" },
+        { token: "attribute.value", foreground: "f1fa8c" },
+      ],
+      colors: {
+        "editor.background": "#282a36",
+        "editor.foreground": "#f8f8f2",
+        "editor.lineHighlightBackground": "#44475a",
+        "editor.selectionBackground": "#44475a",
+        "editorCursor.foreground": "#f8f8f2",
+        "editorLineNumber.foreground": "#6272a4",
+        "editorLineNumber.activeForeground": "#f8f8f2",
+        "editorIndentGuide.background": "#424450",
+        "editorIndentGuide.activeBackground": "#6272a4",
+      },
+    },
+  },
+  {
+    id: "one-dark-pro",
+    label: "One Dark Pro",
+    base: "vs-dark",
+    swatch: ["#282c34", "#abb2bf", "#61afef"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "5c6370", fontStyle: "italic" },
+        { token: "keyword", foreground: "c678dd" },
+        { token: "string", foreground: "98c379" },
+        { token: "number", foreground: "d19a66" },
+        { token: "type", foreground: "e5c07b" },
+        { token: "function", foreground: "61afef" },
+        { token: "variable", foreground: "e06c75" },
+        { token: "constant", foreground: "d19a66" },
+        { token: "tag", foreground: "e06c75" },
+        { token: "attribute.name", foreground: "d19a66" },
+        { token: "attribute.value", foreground: "98c379" },
+      ],
+      colors: {
+        "editor.background": "#282c34",
+        "editor.foreground": "#abb2bf",
+        "editor.lineHighlightBackground": "#2c313c",
+        "editor.selectionBackground": "#3e4451",
+        "editorCursor.foreground": "#528bff",
+        "editorLineNumber.foreground": "#495162",
+        "editorLineNumber.activeForeground": "#abb2bf",
+        "editorIndentGuide.background": "#3b4048",
+        "editorIndentGuide.activeBackground": "#4b5263",
+      },
+    },
+  },
+  {
+    id: "nord",
+    label: "Nord",
+    base: "vs-dark",
+    swatch: ["#2e3440", "#d8dee9", "#88c0d0"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "616e88", fontStyle: "italic" },
+        { token: "keyword", foreground: "81a1c1" },
+        { token: "string", foreground: "a3be8c" },
+        { token: "number", foreground: "b48ead" },
+        { token: "type", foreground: "8fbcbb" },
+        { token: "function", foreground: "88c0d0" },
+        { token: "variable", foreground: "d8dee9" },
+        { token: "constant", foreground: "b48ead" },
+        { token: "tag", foreground: "81a1c1" },
+        { token: "attribute.name", foreground: "8fbcbb" },
+        { token: "attribute.value", foreground: "a3be8c" },
+      ],
+      colors: {
+        "editor.background": "#2e3440",
+        "editor.foreground": "#d8dee9",
+        "editor.lineHighlightBackground": "#3b4252",
+        "editor.selectionBackground": "#434c5e",
+        "editorCursor.foreground": "#d8dee9",
+        "editorLineNumber.foreground": "#4c566a",
+        "editorLineNumber.activeForeground": "#d8dee9",
+        "editorIndentGuide.background": "#434c5e",
+        "editorIndentGuide.activeBackground": "#4c566a",
+      },
+    },
+  },
+  {
+    id: "solarized-dark",
+    label: "Solarized Dark",
+    base: "vs-dark",
+    swatch: ["#002b36", "#839496", "#268bd2"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "586e75", fontStyle: "italic" },
+        { token: "keyword", foreground: "859900" },
+        { token: "string", foreground: "2aa198" },
+        { token: "number", foreground: "d33682" },
+        { token: "type", foreground: "b58900" },
+        { token: "function", foreground: "268bd2" },
+        { token: "variable", foreground: "b58900" },
+        { token: "constant", foreground: "cb4b16" },
+        { token: "tag", foreground: "268bd2" },
+        { token: "attribute.name", foreground: "93a1a1" },
+        { token: "attribute.value", foreground: "2aa198" },
+      ],
+      colors: {
+        "editor.background": "#002b36",
+        "editor.foreground": "#839496",
+        "editor.lineHighlightBackground": "#073642",
+        "editor.selectionBackground": "#274642",
+        "editorCursor.foreground": "#839496",
+        "editorLineNumber.foreground": "#586e75",
+        "editorLineNumber.activeForeground": "#93a1a1",
+        "editorIndentGuide.background": "#073642",
+        "editorIndentGuide.activeBackground": "#0a4f5c",
+      },
+    },
+  },
+  {
+    id: "tokyo-night",
+    label: "Tokyo Night",
+    base: "vs-dark",
+    swatch: ["#1a1b26", "#a9b1d6", "#7aa2f7"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "565f89", fontStyle: "italic" },
+        { token: "keyword", foreground: "9d7cd8" },
+        { token: "string", foreground: "9ece6a" },
+        { token: "number", foreground: "ff9e64" },
+        { token: "type", foreground: "2ac3de" },
+        { token: "function", foreground: "7aa2f7" },
+        { token: "variable", foreground: "c0caf5" },
+        { token: "constant", foreground: "ff9e64" },
+        { token: "tag", foreground: "f7768e" },
+        { token: "attribute.name", foreground: "7aa2f7" },
+        { token: "attribute.value", foreground: "9ece6a" },
+      ],
+      colors: {
+        "editor.background": "#1a1b26",
+        "editor.foreground": "#a9b1d6",
+        "editor.lineHighlightBackground": "#1e2030",
+        "editor.selectionBackground": "#33467c",
+        "editorCursor.foreground": "#c0caf5",
+        "editorLineNumber.foreground": "#3b4261",
+        "editorLineNumber.activeForeground": "#737aa2",
+        "editorIndentGuide.background": "#292e42",
+        "editorIndentGuide.activeBackground": "#3b4261",
+      },
+    },
+  },
+  {
+    id: "cursor-dark",
+    label: "Cursor Dark (Default)",
+    base: "vs-dark",
+    swatch: ["#181818", "#cccccc", "#528bff"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "5c6370", fontStyle: "italic" },
+        { token: "keyword", foreground: "c678dd" },
+        { token: "string", foreground: "98c379" },
+        { token: "number", foreground: "d19a66" },
+        { token: "type", foreground: "e5c07b" },
+        { token: "function", foreground: "61afef" },
+        { token: "variable", foreground: "e06c75" },
+        { token: "constant", foreground: "d19a66" },
+        { token: "tag", foreground: "e06c75" },
+        { token: "attribute.name", foreground: "d19a66" },
+        { token: "attribute.value", foreground: "98c379" },
+        { token: "delimiter", foreground: "abb2bf" },
+        { token: "operator", foreground: "56b6c2" },
+      ],
+      colors: {
+        "editor.background": "#181818",
+        "editor.foreground": "#cccccc",
+        "editor.lineHighlightBackground": "#1e1e1e",
+        "editor.selectionBackground": "#264f78",
+        "editorCursor.foreground": "#528bff",
+        "editorLineNumber.foreground": "#495162",
+        "editorLineNumber.activeForeground": "#abb2bf",
+        "editorIndentGuide.background": "#2c2c2c",
+        "editorIndentGuide.activeBackground": "#3c3c3c",
+        "editor.selectionHighlightBackground": "#264f7840",
+        "editorBracketMatch.background": "#2d2d2d",
+        "editorBracketMatch.border": "#528bff50",
+      },
+    },
+  },
+  {
+    id: "dark-modern",
+    label: "Dark Modern",
+    base: "vs-dark",
+    swatch: ["#1f1f1f", "#d4d4d4", "#4fc1ff"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "6a9955", fontStyle: "italic" },
+        { token: "keyword", foreground: "569cd6" },
+        { token: "keyword.control", foreground: "c586c0" },
+        { token: "string", foreground: "ce9178" },
+        { token: "number", foreground: "b5cea8" },
+        { token: "type", foreground: "4ec9b0" },
+        { token: "function", foreground: "dcdcaa" },
+        { token: "variable", foreground: "9cdcfe" },
+        { token: "constant", foreground: "4fc1ff" },
+        { token: "tag", foreground: "569cd6" },
+        { token: "attribute.name", foreground: "9cdcfe" },
+        { token: "attribute.value", foreground: "ce9178" },
+        { token: "delimiter", foreground: "d4d4d4" },
+        { token: "operator", foreground: "d4d4d4" },
+      ],
+      colors: {
+        "editor.background": "#1f1f1f",
+        "editor.foreground": "#d4d4d4",
+        "editor.lineHighlightBackground": "#2a2a2a",
+        "editor.selectionBackground": "#264f78",
+        "editorCursor.foreground": "#aeafad",
+        "editorLineNumber.foreground": "#6e7681",
+        "editorLineNumber.activeForeground": "#cccccc",
+        "editorIndentGuide.background": "#404040",
+        "editorIndentGuide.activeBackground": "#707070",
+        "editor.selectionHighlightBackground": "#add6ff26",
+        "editorBracketMatch.background": "#0064001a",
+        "editorBracketMatch.border": "#888888",
+      },
+    },
+  },
+];
+
+export const DEFAULT_THEME = "cursor-dark";
+
+/** Register all custom themes with Monaco */
+export function registerCustomThemes(monaco: any) {
+  for (const theme of EDITOR_THEMES) {
+    if (!theme.builtin && theme.data) {
+      monaco.editor.defineTheme(theme.id, theme.data);
+    }
+  }
+}
