@@ -10,6 +10,10 @@ import {
   Settings,
   Check,
   Palette,
+  FolderX,
+  ChevronRight,
+  ChevronLeft,
+  RefreshCw,
 } from "lucide-react";
 import {
   getProject,
@@ -46,7 +50,8 @@ export default function ProjectPage() {
     setGeneratedFiles,
   } = useProjectStore();
 
-  const { editorTheme, setEditorTheme } = useProjectStore();
+  const { editorTheme, setEditorTheme, hideNodeModules, setHideNodeModules } =
+    useProjectStore();
 
   const [rightPanelTab, setRightPanelTab] = useState<"timeline" | "outputs">(
     "timeline"
@@ -54,7 +59,9 @@ export default function ProjectPage() {
   const [centerView, setCenterView] = useState<"code" | "preview">("code");
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [refreshingFiles, setRefreshingFiles] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsView, setSettingsView] = useState<"main" | "themes">("main");
   const settingsRef = useRef<HTMLDivElement>(null);
 
   // Close settings dropdown on click outside
@@ -65,6 +72,7 @@ export default function ProjectPage() {
         !settingsRef.current.contains(event.target as Node)
       ) {
         setSettingsOpen(false);
+        setSettingsView("main");
       }
     }
     if (settingsOpen) {
@@ -190,6 +198,20 @@ export default function ProjectPage() {
     }
   };
 
+  // Refresh file tree
+  const handleRefreshFiles = async () => {
+    if (refreshingFiles) return;
+    setRefreshingFiles(true);
+    try {
+      const tree = await getFileTree(projectId);
+      setFileTree(tree.root);
+    } catch {
+      // Silently fail — tree may not exist yet
+    } finally {
+      setRefreshingFiles(false);
+    }
+  };
+
   // Download project as zip
   const handleDownloadZip = async () => {
     if (downloading) return;
@@ -263,6 +285,18 @@ export default function ProjectPage() {
           <div className="p-3 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-medium">Files</h2>
             <div className="flex items-center gap-1">
+              {/* Refresh file tree */}
+              <button
+                onClick={handleRefreshFiles}
+                disabled={refreshingFiles}
+                title="Refresh file list"
+                className="p-1.5 rounded text-foreground-muted hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${refreshingFiles ? "animate-spin" : ""}`}
+                />
+              </button>
+
               {project.state.pipeline_status?.stage === "completed" && (
                 <button
                   onClick={handleDownloadZip}
@@ -282,7 +316,10 @@ export default function ProjectPage() {
               {/* Settings Button */}
               <div className="relative" ref={settingsRef}>
                 <button
-                  onClick={() => setSettingsOpen(!settingsOpen)}
+                  onClick={() => {
+                    setSettingsOpen(!settingsOpen);
+                    if (settingsOpen) setSettingsView("main");
+                  }}
                   className={`p-1.5 rounded transition-colors ${
                     settingsOpen
                       ? "bg-accent/10 text-accent"
@@ -295,75 +332,120 @@ export default function ProjectPage() {
 
                 {/* Settings Dropdown */}
                 {settingsOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-64 z-50 rounded-xl border border-border bg-background-secondary shadow-2xl shadow-black/40 overflow-hidden animate-in">
-                    {/* Header */}
-                    <div className="px-3 py-2.5 border-b border-border">
-                      <div className="flex items-center gap-2">
-                        <Settings className="h-3.5 w-3.5 text-foreground-subtle" />
-                        <span className="text-xs font-semibold uppercase tracking-wider text-foreground-subtle">
-                          Settings
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Editor Theme Section */}
-                    <div className="p-2">
-                      <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
-                        <Palette className="h-3.5 w-3.5 text-accent" />
-                        <span className="text-xs font-medium text-foreground">
-                          Editor Theme
-                        </span>
-                      </div>
-
-                      <div className="max-h-72 overflow-y-auto space-y-0.5">
-                        {EDITOR_THEMES.map((theme) => (
-                          <button
-                            key={theme.id}
-                            onClick={() => {
-                              setEditorTheme(theme.id);
-                            }}
-                            className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-all duration-150 group ${
-                              editorTheme === theme.id
-                                ? "bg-accent/10"
-                                : "hover:bg-background-tertiary"
+                  <div className="absolute right-0 top-full mt-1 w-60 z-50 rounded-xl border border-border bg-background-secondary shadow-2xl shadow-black/40 overflow-hidden animate-in">
+                    {settingsView === "main" ? (
+                      /* ── Main Settings View ── */
+                      <div className="px-1.5 py-1.5 space-y-0.5">
+                        {/* Hide node_modules */}
+                        <button
+                          onClick={() => setHideNodeModules(!hideNodeModules)}
+                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-lg text-left transition-all duration-150 hover:bg-background-tertiary group"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <FolderX className="h-3.5 w-3.5 text-foreground-subtle group-hover:text-foreground-muted shrink-0" />
+                            <span className="text-xs font-medium text-foreground-muted group-hover:text-foreground">
+                              Hide node_modules
+                            </span>
+                          </div>
+                          <div
+                            className={`relative w-8 h-[18px] rounded-full transition-colors duration-200 shrink-0 ${
+                              hideNodeModules
+                                ? "bg-accent"
+                                : "bg-foreground-subtle/30"
                             }`}
                           >
-                            {/* Color Swatch */}
                             <div
-                              className="w-5 h-5 rounded-md shrink-0 border border-white/10 flex items-center justify-center overflow-hidden"
-                              style={{ backgroundColor: theme.swatch[0] }}
-                            >
-                              <div className="flex flex-col items-center gap-px">
-                                <div
-                                  className="w-2.5 h-[2px] rounded-full"
-                                  style={{ backgroundColor: theme.swatch[2] }}
-                                />
-                                <div
-                                  className="w-2 h-[2px] rounded-full opacity-60"
-                                  style={{ backgroundColor: theme.swatch[1] }}
-                                />
-                              </div>
-                            </div>
+                              className={`absolute top-[2px] h-[14px] w-[14px] rounded-full shadow-sm transition-all duration-200 border ${
+                                hideNodeModules
+                                  ? "translate-x-[16px] bg-background-secondary border-white/20"
+                                  : "translate-x-[2px] bg-background-secondary border-foreground-subtle/30"
+                              }`}
+                            />
+                          </div>
+                        </button>
 
-                            {/* Label */}
-                            <span
-                              className={`text-xs font-medium flex-1 ${
+                        {/* Editor Theme → opens sub-panel */}
+                        <button
+                          onClick={() => setSettingsView("themes")}
+                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-lg text-left transition-all duration-150 hover:bg-background-tertiary group"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Palette className="h-3.5 w-3.5 text-foreground-subtle group-hover:text-foreground-muted shrink-0" />
+                            <span className="text-xs font-medium text-foreground-muted group-hover:text-foreground">
+                              Editor Theme
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-foreground-subtle truncate max-w-[72px]">
+                              {EDITOR_THEMES.find((t) => t.id === editorTheme)?.label ?? "Default"}
+                            </span>
+                            <ChevronRight className="h-3.5 w-3.5 text-foreground-subtle shrink-0" />
+                          </div>
+                        </button>
+                      </div>
+                    ) : (
+                      /* ── Theme Picker Sub-panel ── */
+                      <div>
+                        {/* Back header */}
+                        <button
+                          onClick={() => setSettingsView("main")}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 border-b border-border text-left hover:bg-background-tertiary transition-colors"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5 text-foreground-subtle" />
+                          <span className="text-xs font-medium text-foreground-muted">
+                            Editor Theme
+                          </span>
+                        </button>
+
+                        {/* Theme list */}
+                        <div className="px-1.5 py-1.5 max-h-72 overflow-y-auto space-y-0.5">
+                          {EDITOR_THEMES.map((theme) => (
+                            <button
+                              key={theme.id}
+                              onClick={() => setEditorTheme(theme.id)}
+                              className={`w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-left transition-all duration-150 group ${
                                 editorTheme === theme.id
-                                  ? "text-accent"
-                                  : "text-foreground-muted group-hover:text-foreground"
+                                  ? "bg-accent/10"
+                                  : "hover:bg-background-tertiary"
                               }`}
                             >
-                              {theme.label}
-                            </span>
+                              {/* Color Swatch */}
+                              <div
+                                className="w-5 h-5 rounded-md shrink-0 border border-white/10 flex items-center justify-center overflow-hidden"
+                                style={{ backgroundColor: theme.swatch[0] }}
+                              >
+                                <div className="flex flex-col items-center gap-px">
+                                  <div
+                                    className="w-2.5 h-[2px] rounded-full"
+                                    style={{ backgroundColor: theme.swatch[2] }}
+                                  />
+                                  <div
+                                    className="w-2 h-[2px] rounded-full opacity-60"
+                                    style={{ backgroundColor: theme.swatch[1] }}
+                                  />
+                                </div>
+                              </div>
 
-                            {/* Check Mark */}
-                            {editorTheme === theme.id && (
-                              <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                            )}
-                          </button>
-                        ))}
+                              {/* Label */}
+                              <span
+                                className={`text-xs font-medium flex-1 ${
+                                  editorTheme === theme.id
+                                    ? "text-accent"
+                                    : "text-foreground-muted group-hover:text-foreground"
+                                }`}
+                              >
+                                {theme.label}
+                              </span>
+
+                              {/* Check Mark */}
+                              {editorTheme === theme.id && (
+                                <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>

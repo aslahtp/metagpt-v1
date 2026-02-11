@@ -65,6 +65,10 @@ interface ProjectStore {
   editorTheme: string;
   setEditorTheme: (theme: string) => void;
 
+  // File explorer settings
+  hideNodeModules: boolean;
+  setHideNodeModules: (hide: boolean) => void;
+
   // Reset
   reset: () => void;
 }
@@ -138,6 +142,10 @@ export const useProjectStore = create<ProjectStore>((set) => ({
     } catch {}
     set({ editorTheme: theme });
   },
+
+  // File explorer settings
+  hideNodeModules: true,
+  setHideNodeModules: (hide) => set({ hideNodeModules: hide }),
 
   // Reset
   reset: () =>
