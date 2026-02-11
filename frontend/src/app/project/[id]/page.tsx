@@ -48,6 +48,7 @@ export default function ProjectPage() {
     setFileContent,
     setFileLanguage,
     setGeneratedFiles,
+    reset,
   } = useProjectStore();
 
   const { editorTheme, setEditorTheme, hideNodeModules, setHideNodeModules } =
@@ -224,6 +225,11 @@ export default function ProjectPage() {
       setDownloading(false);
     }
   };
+
+  // Reset store when navigating to a new project
+  useEffect(() => {
+    reset();
+  }, [projectId]);
 
   // Initial load
   useEffect(() => {

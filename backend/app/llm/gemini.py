@@ -44,14 +44,22 @@ def get_llm(
     """
     settings = get_settings()
 
-    return ChatGoogleGenerativeAI(
-        model=settings.llm_model,
-        google_api_key=settings.google_api_key,
-        temperature=temperature if temperature is not None else settings.llm_temperature,
-        max_output_tokens=max_tokens if max_tokens is not None else settings.llm_max_tokens,
-        timeout=settings.llm_timeout,
-        convert_system_message_to_human=True,
-    )
+    resolved_temp = temperature if temperature is not None else settings.llm_temperature
+    resolved_max = max_tokens if max_tokens is not None else settings.llm_max_tokens
+
+    kwargs: dict = {
+        "model": settings.llm_model,
+        "google_api_key": settings.google_api_key,
+        "timeout": settings.llm_timeout,
+        "convert_system_message_to_human": True,
+    }
+
+    if resolved_temp is not None:
+        kwargs["temperature"] = resolved_temp
+    if resolved_max is not None:
+        kwargs["max_output_tokens"] = resolved_max
+
+    return ChatGoogleGenerativeAI(**kwargs)
 
 
 def get_llm_with_structured_output(
