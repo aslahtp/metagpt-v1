@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Sparkles,
   ArrowRight,
   Code2,
   Layers,
@@ -11,6 +10,7 @@ import {
   Zap,
   BookOpen,
 } from "lucide-react";
+import StarBorder from "@/components/StarBorder";
 
 const features = [
   {
@@ -56,7 +56,14 @@ const examplePrompts = [
 export default function HomePage() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,18 +101,42 @@ export default function HomePage() {
       />
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50 border-b border-border bg-[#14120b]/80 backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5 group">
-            <Sparkles className="h-5 w-5 text-foreground transition-colors duration-200 group-hover:text-foreground-muted" />
-            <span className="font-semibold text-[15px] tracking-tight">
+      <div className="sticky top-0 z-50 w-full flex justify-center px-6">
+        <header
+          className="flex items-center justify-between backdrop-blur-xl border border-transparent transition-[max-width,height,padding,border-radius,margin,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+          style={{
+            maxWidth: scrolled ? "50%" : "80rem",
+            width: "100%",
+            height: scrolled ? "2.75rem" : "3.5rem",
+            paddingLeft: scrolled ? "1.25rem" : "1.5rem",
+            paddingRight: scrolled ? "1.25rem" : "1.5rem",
+            borderRadius: scrolled ? "9999px" : "0px",
+            marginTop: scrolled ? "0.75rem" : "0px",
+            backgroundColor: scrolled
+              ? "rgba(18,18,18,0.8)"
+              : "rgba(20,18,11,0.8)",
+            borderColor: scrolled ? "#2a2a2a" : "transparent",
+            borderBottomColor: "#2a2a2a",
+            boxShadow: scrolled
+              ? "0 10px 15px -3px rgba(0,0,0,0.2)"
+              : "none",
+          }}
+        >
+          <a href="/" className="flex items-center group">
+            <span className="font-semibold text-lg tracking-tight">
               MetaGPT
             </span>
           </a>
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-5 overflow-hidden">
             <a
               href="/docs"
-              className="text-foreground-muted hover:text-foreground text-sm transition-colors duration-200"
+              className="text-foreground-muted hover:text-foreground text-sm transition-all duration-500"
+              style={{
+                opacity: scrolled ? 0 : 1,
+                width: scrolled ? 0 : "auto",
+                marginRight: scrolled ? 0 : undefined,
+                pointerEvents: scrolled ? "none" : "auto",
+              }}
             >
               Docs
             </a>
@@ -116,8 +147,8 @@ export default function HomePage() {
               Projects
             </a>
           </nav>
-        </div>
-      </header>
+        </header>
+      </div>
 
       {/* ── Hero ── */}
       <section className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pt-24 pb-20 md:pt-32 md:pb-28">
@@ -148,37 +179,45 @@ export default function HomePage() {
             onSubmit={handleSubmit}
             className="opacity-0 animate-fade-in-up stagger-4 mt-10 w-full max-w-2xl mx-auto"
           >
-            <div className="relative rounded-2xl border border-border bg-background-secondary transition-colors duration-200 focus-within:border-foreground-subtle">
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the application you want to build..."
-                rows={3}
-                className={`w-full resize-none rounded-2xl bg-transparent px-5 pt-4 text-[15px] text-foreground placeholder:text-foreground-subtle focus:outline-none transition-[padding] duration-300 ${prompt.trim() || isLoading ? "pb-14" : "pb-4"}`}
-                disabled={isLoading}
-              />
-              <div
-                className={`absolute bottom-3 right-3 transition-all duration-300 ease-out ${prompt.trim() || isLoading ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}
-              >
-                <button
-                  type="submit"
-                  disabled={!prompt.trim() || isLoading}
-                  className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-black transition-all duration-200 hover:bg-gray-200 disabled:pointer-events-none disabled:opacity-40"
+            <StarBorder
+              as="div"
+              className="w-full rounded-2xl"
+              color="rgba(255,255,255,0.5)"
+              speed="8s"
+              thickness={1}
+            >
+              <div className="relative rounded-2xl bg-background-secondary">
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe the application you want to build..."
+                  rows={3}
+                  className={`w-full resize-none rounded-2xl bg-transparent px-5 pt-4 text-[15px] text-foreground placeholder:text-foreground-subtle focus:outline-none transition-[padding] duration-300 ${prompt.trim() || isLoading ? "pb-14" : "pb-4"}`}
+                  disabled={isLoading}
+                />
+                <div
+                  className={`absolute bottom-3 right-3 transition-all duration-300 ease-out ${prompt.trim() || isLoading ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}
                 >
-                  {isLoading ? (
-                    <>
-                      <div className="h-3.5 w-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      Generate
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </>
-                  )}
-                </button>
+                  <button
+                    type="submit"
+                    disabled={!prompt.trim() || isLoading}
+                    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-black transition-all duration-200 hover:bg-gray-200 disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="h-3.5 w-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        Generate
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
+            </StarBorder>
           </form>
 
           {/* Example Prompts */}

@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import {
-  Sparkles,
   Code,
   Monitor,
   Download,
@@ -258,10 +258,9 @@ export default function ProjectPage() {
     <div className="h-screen flex flex-col">
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center px-4 gap-4 shrink-0">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity duration-200">
           <span className="font-medium">MetaGPT</span>
-        </div>
+        </Link>
         <div className="h-4 w-px bg-border" />
         <div className="flex-1 min-w-0" title={project.prompt}>
           <h1 className="text-sm font-medium truncate">

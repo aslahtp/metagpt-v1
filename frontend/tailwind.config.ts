@@ -52,6 +52,9 @@ const config: Config = {
         "fade-in": "fadeIn 0.5s ease-out forwards",
         "fade-in-up": "fadeInUp 0.6s ease-out forwards",
         "slide-up": "slideUp 0.3s ease-out",
+        "star-movement-bottom":
+          "star-movement-bottom linear infinite alternate",
+        "star-movement-top": "star-movement-top linear infinite alternate",
       },
       keyframes: {
         fadeIn: {
@@ -65,6 +68,14 @@ const config: Config = {
         slideUp: {
           "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "star-movement-bottom": {
+          "0%": { transform: "translate(0%, 0%)", opacity: "1" },
+          "100%": { transform: "translate(-100%, 0%)", opacity: "0" },
+        },
+        "star-movement-top": {
+          "0%": { transform: "translate(0%, 0%)", opacity: "1" },
+          "100%": { transform: "translate(100%, 0%)", opacity: "0" },
         },
       },
     },

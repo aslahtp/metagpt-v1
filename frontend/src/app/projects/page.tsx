@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Sparkles,
   Plus,
   Clock,
   CheckCircle,
   XCircle,
   Loader2,
+  FolderOpen,
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import type { Project } from "@/lib/api";
@@ -53,8 +53,7 @@ export default function ProjectsPage() {
       {/* Header */}
       <header className="border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-accent" />
+          <Link href="/" className="flex items-center">
             <span className="font-semibold text-lg">MetaGPT</span>
           </Link>
           <Link href="/" className="btn-primary flex items-center gap-2">
@@ -75,7 +74,7 @@ export default function ProjectsPage() {
         ) : projects.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="h-8 w-8 text-accent" />
+              <FolderOpen className="h-8 w-8 text-accent" />
             </div>
             <h2 className="text-xl font-medium mb-2">No projects yet</h2>
             <p className="text-foreground-muted mb-6">
