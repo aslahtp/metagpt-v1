@@ -89,7 +89,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col relative bg-[#14120b]">
+    <main className="min-h-screen flex flex-col relative">
       {/* Subtle top radial glow */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
@@ -114,9 +114,9 @@ export default function HomePage() {
             marginTop: scrolled ? "0.75rem" : "0px",
             backgroundColor: scrolled
               ? "rgba(29,27,21,0.8)"
-              : "rgba(20,18,11,0.8)",
-            borderColor: scrolled ? "#2a2a2a" : "transparent",
-            borderBottomColor: "#2a2a2a",
+              : "rgba(20,18,11,0.8)", // matches bg-background
+            borderColor: scrolled ? "#2e2a22" : "transparent",
+            borderBottomColor: "#2e2a22",
             boxShadow: scrolled
               ? "0 10px 15px -3px rgba(0,0,0,0.2)"
               : "none",
@@ -293,8 +293,8 @@ export default function HomePage() {
                     <div className="absolute top-[18px] left-[calc(50%+20px)] right-[calc(-50%+20px)] border-t border-border" />
                   )}
                   {/* Step number dot */}
-                  <div className="relative z-10 w-9 h-9 rounded-full border border-border bg-[#14120b] flex items-center justify-center mb-4">
-                    <span className="text-xs font-mono text-foreground-subtle">
+                  <div className="relative z-10 w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center mb-4">
+                    <span className="text-xs font-mono font-bold text-foreground">
                       {agent.step}
                     </span>
                   </div>
@@ -311,8 +311,8 @@ export default function HomePage() {
               <div key={i} className="flex items-start gap-4">
                 {/* Vertical track */}
                 <div className="flex flex-col items-center">
-                  <div className="w-9 h-9 rounded-full border border-border bg-[#14120b] flex items-center justify-center shrink-0">
-                    <span className="text-xs font-mono text-foreground-subtle">
+                  <div className="w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center shrink-0">
+                    <span className="text-xs font-mono font-bold text-foreground">
                       {agent.step}
                     </span>
                   </div>

@@ -12,9 +12,9 @@ const config: Config = {
       colors: {
         // Monochrome dark theme - black, white, grey
         background: {
-          DEFAULT: "#0a0a0a",
+          DEFAULT: "#14120b",
           secondary: "#1d1b15",
-          tertiary: "#49433a",
+          tertiary: "#26241e",
         },
         foreground: {
           DEFAULT: "#ffffff",
@@ -22,8 +22,8 @@ const config: Config = {
           subtle: "#666666",
         },
         border: {
-          DEFAULT: "#2a2a2a",
-          muted: "#1e1e1e",
+          DEFAULT: "#2e2a22",
+          muted: "#231f18",
         },
         accent: {
           DEFAULT: "#ffffff",
