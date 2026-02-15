@@ -24,9 +24,10 @@ T = TypeVar("T", bound=BaseModel)
 def get_llm(
     temperature: float | None = None,
     max_tokens: int | None = None,
+    model: str | None = None,
 ) -> ChatGoogleGenerativeAI:
     """
-    Get the centralized Gemini 3 Flash LLM instance.
+    Get the centralized Gemini LLM instance.
 
     This is the ONLY function that should be used to obtain an LLM instance.
     All agents in the system use this same LLM configuration.
@@ -34,9 +35,10 @@ def get_llm(
     Args:
         temperature: Override default temperature (0.0-1.0)
         max_tokens: Override default max output tokens
+        model: Override default model (e.g. 'gemini-2.0-flash', 'gemini-2.5-pro')
 
     Returns:
-        ChatGoogleGenerativeAI: Configured Gemini 3 Flash instance
+        ChatGoogleGenerativeAI: Configured Gemini instance
 
     Example:
         >>> llm = get_llm()
@@ -46,9 +48,10 @@ def get_llm(
 
     resolved_temp = temperature if temperature is not None else settings.llm_temperature
     resolved_max = max_tokens if max_tokens is not None else settings.llm_max_tokens
+    resolved_model = model if model is not None else settings.llm_model
 
     kwargs: dict = {
-        "model": settings.llm_model,
+        "model": resolved_model,
         "google_api_key": settings.google_api_key,
         "timeout": settings.llm_timeout,
         "convert_system_message_to_human": True,
@@ -66,9 +69,10 @@ def get_llm_with_structured_output(
     output_schema: type[T],
     temperature: float | None = None,
     max_tokens: int | None = None,
+    model: str | None = None,
 ) -> BaseChatModel:
     """
-    Get Gemini 3 Flash configured for structured JSON output.
+    Get Gemini configured for structured JSON output.
 
     This wraps the base LLM with structured output parsing capabilities,
     ensuring agents produce valid, typed responses.
@@ -77,6 +81,7 @@ def get_llm_with_structured_output(
         output_schema: Pydantic model defining expected output structure
         temperature: Override default temperature
         max_tokens: Override default max tokens
+        model: Override default model
 
     Returns:
         LLM configured to output structured data matching the schema
@@ -88,7 +93,7 @@ def get_llm_with_structured_output(
         >>> llm = get_llm_with_structured_output(TaskOutput)
         >>> result = llm.invoke("Create a task for building a login page")
     """
-    base_llm = get_llm(temperature=temperature, max_tokens=max_tokens)
+    base_llm = get_llm(temperature=temperature, max_tokens=max_tokens, model=model)
     return base_llm.with_structured_output(output_schema)
 
 

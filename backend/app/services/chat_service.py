@@ -56,12 +56,12 @@ class ChatService:
     and updates only the affected files.
     """
 
-    def __init__(self):
+    def __init__(self, model: str | None = None):
         """Initialize the chat service."""
         self.project_store = ProjectStore()
         self.file_store = FileStore()
         self.pipeline = AgentPipeline()
-        self.llm = get_llm(temperature=0.3)  # Lower temperature for classification
+        self.llm = get_llm(temperature=0.3, model=model)
 
     async def process_message(
         self,
@@ -78,6 +78,10 @@ class ChatService:
         Returns:
             ChatResponse with assistant response and updates
         """
+        # Re-initialize LLM if a specific model was requested
+        if request.model:
+            self.llm = get_llm(temperature=0.3, model=request.model)
+
         project = await self.project_store.get(project_id)
         if not project:
             raise ValueError(f"Project {project_id} not found")

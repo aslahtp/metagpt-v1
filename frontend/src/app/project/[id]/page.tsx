@@ -54,7 +54,9 @@ export default function ProjectPage() {
   const { editorTheme, setEditorTheme, hideNodeModules, setHideNodeModules } =
     useProjectStore();
 
-  const [rightPanelTab, setRightPanelTab] = useState<"timeline" | "outputs">(
+  const [rightPanelTab, setRightPanelTab] = useState<
+    "timeline" | "outputs" | "chat"
+  >(
     "timeline"
   );
   const [centerView, setCenterView] = useState<"code" | "preview">("code");
@@ -525,7 +527,7 @@ export default function ProjectPage() {
           <div className="flex border-b border-border shrink-0">
             <button
               onClick={() => setRightPanelTab("timeline")}
-              className={`flex-1 px-4 py-2 text-sm font-medium ${
+              className={`flex-1 px-3 py-2 text-sm font-medium ${
                 rightPanelTab === "timeline"
                   ? "text-accent border-b-2 border-accent"
                   : "text-foreground-muted hover:text-foreground"
@@ -535,7 +537,7 @@ export default function ProjectPage() {
             </button>
             <button
               onClick={() => setRightPanelTab("outputs")}
-              className={`flex-1 px-4 py-2 text-sm font-medium ${
+              className={`flex-1 px-3 py-2 text-sm font-medium ${
                 rightPanelTab === "outputs"
                   ? "text-accent border-b-2 border-accent"
                   : "text-foreground-muted hover:text-foreground"
@@ -543,18 +545,28 @@ export default function ProjectPage() {
             >
               Outputs
             </button>
+            <button
+              onClick={() => setRightPanelTab("chat")}
+              className={`flex-1 px-3 py-2 text-sm font-medium ${
+                rightPanelTab === "chat"
+                  ? "text-accent border-b-2 border-accent"
+                  : "text-foreground-muted hover:text-foreground"
+              }`}
+            >
+              Chat
+            </button>
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 min-h-0 overflow-auto flex flex-col">
             {rightPanelTab === "timeline" && <ExecutionTimeline />}
             {rightPanelTab === "outputs" && <AgentOutputs />}
+            {rightPanelTab === "chat" && (
+              <ChatPanel projectId={projectId} embedded />
+            )}
           </div>
         </div>
       </div>
-
-      {/* Bottom Panel - Chat */}
-      <ChatPanel projectId={projectId} />
 
       {/* Error Toast */}
       {error && (

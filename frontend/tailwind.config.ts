@@ -52,9 +52,15 @@ const config: Config = {
         "fade-in": "fadeIn 0.5s ease-out forwards",
         "fade-in-up": "fadeInUp 0.6s ease-out forwards",
         "slide-up": "slideUp 0.3s ease-out",
+        "message-in":
+          "messageIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         "star-movement-bottom":
           "star-movement-bottom linear infinite alternate",
         "star-movement-top": "star-movement-top linear infinite alternate",
+        "wave-bar": "wave-bar 1.2s ease-in-out infinite",
+        "chat-breathe": "chatBreathe 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite",
+        "dot-pulse":
+          "dotPulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
       },
       keyframes: {
         fadeIn: {
@@ -64,6 +70,16 @@ const config: Config = {
         fadeInUp: {
           "0%": { opacity: "0", transform: "translateY(16px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        messageIn: {
+          "0%": {
+            opacity: "0",
+            transform: "translateY(10px) scale(0.98)",
+          },
+          "100%": {
+            opacity: "1",
+            transform: "translateY(0) scale(1)",
+          },
         },
         slideUp: {
           "0%": { opacity: "0", transform: "translateY(10px)" },
@@ -76,6 +92,18 @@ const config: Config = {
         "star-movement-top": {
           "0%": { transform: "translate(0%, 0%)", opacity: "1" },
           "100%": { transform: "translate(100%, 0%)", opacity: "0" },
+        },
+        "wave-bar": {
+          "0%, 60%, 100%": { transform: "scaleY(0.4)" },
+          "30%": { transform: "scaleY(1)" },
+        },
+        chatBreathe: {
+          "0%, 100%": { transform: "scaleY(0.5)", opacity: "0.7" },
+          "50%": { transform: "scaleY(1)", opacity: "1" },
+        },
+        dotPulse: {
+          "0%, 100%": { transform: "scale(0.5)", opacity: "0.6" },
+          "50%": { transform: "scale(1)", opacity: "1" },
         },
       },
     },
