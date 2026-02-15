@@ -82,7 +82,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col relative">
+    <main className="min-h-screen flex flex-col relative bg-[#14120b]">
       {/* Subtle top radial glow */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
@@ -94,7 +94,7 @@ export default function HomePage() {
       />
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-border bg-[#14120b]/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2.5 group">
             <Sparkles className="h-5 w-5 text-foreground transition-colors duration-200 group-hover:text-foreground-muted" />
@@ -153,7 +153,7 @@ export default function HomePage() {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Describe the application you want to build..."
-                rows={4}
+                rows={3}
                 className={`w-full resize-none rounded-2xl bg-transparent px-5 pt-4 text-[15px] text-foreground placeholder:text-foreground-subtle focus:outline-none transition-[padding] duration-300 ${prompt.trim() || isLoading ? "pb-14" : "pb-4"}`}
                 disabled={isLoading}
               />
@@ -254,7 +254,7 @@ export default function HomePage() {
                     <div className="absolute top-[18px] left-[calc(50%+20px)] right-[calc(-50%+20px)] border-t border-border" />
                   )}
                   {/* Step number dot */}
-                  <div className="relative z-10 w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center mb-4">
+                  <div className="relative z-10 w-9 h-9 rounded-full border border-border bg-[#14120b] flex items-center justify-center mb-4">
                     <span className="text-xs font-mono text-foreground-subtle">
                       {agent.step}
                     </span>
@@ -272,7 +272,7 @@ export default function HomePage() {
               <div key={i} className="flex items-start gap-4">
                 {/* Vertical track */}
                 <div className="flex flex-col items-center">
-                  <div className="w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-full border border-border bg-[#14120b] flex items-center justify-center shrink-0">
                     <span className="text-xs font-mono text-foreground-subtle">
                       {agent.step}
                     </span>
