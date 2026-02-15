@@ -113,7 +113,7 @@ export default function HomePage() {
             borderRadius: scrolled ? "9999px" : "0px",
             marginTop: scrolled ? "0.75rem" : "0px",
             backgroundColor: scrolled
-              ? "rgba(18,18,18,0.8)"
+              ? "rgba(29,27,21,0.8)"
               : "rgba(20,18,11,0.8)",
             borderColor: scrolled ? "#2a2a2a" : "transparent",
             borderBottomColor: "#2a2a2a",

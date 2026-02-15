@@ -13,8 +13,8 @@ const config: Config = {
         // Monochrome dark theme - black, white, grey
         background: {
           DEFAULT: "#0a0a0a",
-          secondary: "#121212",
-          tertiary: "#1a1a1a",
+          secondary: "#1d1b15",
+          tertiary: "#49433a",
         },
         foreground: {
           DEFAULT: "#ffffff",
