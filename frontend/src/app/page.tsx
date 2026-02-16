@@ -13,6 +13,7 @@ import {
 import StarBorder from "@/components/StarBorder";
 import SplitText from "@/components/SplitText";
 import ShinyText from "@/components/ShinyText";
+import SpotlightCard from "@/components/SpotLightCard";
 
 const features = [
   {
@@ -276,18 +277,20 @@ export default function HomePage() {
 
           <div className="grid sm:grid-cols-2 gap-4">
             {features.map((feature, i) => (
-              <div
+              <SpotlightCard
                 key={i}
-                className="group rounded-2xl border border-border bg-background-secondary p-6 space-y-4 transition-colors duration-300 hover:border-foreground-subtle hover:bg-background-secondary/80"
+                className="group transition-colors duration-300 hover:bg-background-secondary/80"
               >
-                <div className="w-10 h-10 rounded-lg bg-background-tertiary flex items-center justify-center">
-                  <feature.icon className="h-5 w-5 text-foreground-muted" />
+                <div className="space-y-4">
+                  <div className="w-10 h-10 rounded-lg bg-background-tertiary flex items-center justify-center">
+                    <feature.icon className="h-5 w-5 text-foreground-muted" />
+                  </div>
+                  <h3 className="font-medium text-[15px]">{feature.title}</h3>
+                  <p className="text-sm text-foreground-muted leading-relaxed">
+                    {feature.description}
+                  </p>
                 </div>
-                <h3 className="font-medium text-[15px]">{feature.title}</h3>
-                <p className="text-sm text-foreground-muted leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
+              </SpotlightCard>
             ))}
           </div>
         </div>
