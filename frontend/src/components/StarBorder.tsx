@@ -27,7 +27,7 @@ const StarBorder = <T extends React.ElementType = "div">({
       {...(rest as Record<string, unknown>)}
       style={{
         padding: `${thickness}px 0`,
-        ...(rest as Record<string, unknown>).style,
+        ...(rest as React.CSSProperties),
       }}
     >
       <div

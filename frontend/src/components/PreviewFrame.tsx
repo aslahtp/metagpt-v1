@@ -6,7 +6,6 @@ import {
   ExternalLink,
   RefreshCw,
   Play,
-  AlertCircle,
   Terminal,
   Monitor,
   Tablet,
@@ -18,13 +17,27 @@ interface PreviewFrameProps {
   projectId: string;
 }
 
-type DevicePreset = "responsive" | "mobile" | "desktop" | "tablet" ;
+type DevicePreset = "responsive" | "mobile" | "desktop" | "tablet";
 
 const DEVICE_WIDTHS: Record<DevicePreset, number | null> = {
   responsive: null, // fits container width, no scaling
   mobile: 375,
   desktop: 1440,
   tablet: 768,
+};
+
+const DEVICE_ICONS: Record<DevicePreset, React.ComponentType<{ className?: string }>> = {
+  responsive: Maximize,
+  mobile: Smartphone,
+  tablet: Tablet,
+  desktop: Monitor,
+};
+
+const DEVICE_LABELS: Record<DevicePreset, string> = {
+  responsive: "Responsive",
+  mobile: "Mobile",
+  tablet: "Tablet",
+  desktop: "Desktop",
 };
 
 export function PreviewFrame({ projectId }: PreviewFrameProps) {
@@ -36,6 +49,23 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
+  const layoutMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close layout menu when clicking outside
+  useEffect(() => {
+    if (!layoutMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        layoutMenuRef.current &&
+        !layoutMenuRef.current.contains(e.target as Node)
+      ) {
+        setLayoutMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [layoutMenuOpen]);
 
   // Measure the container size using ResizeObserver
   useEffect(() => {
@@ -137,12 +167,6 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     setIframeKey((k) => k + 1);
   };
 
-  const currentWidth = DEVICE_WIDTHS[device];
-  const scale =
-    currentWidth && containerSize.width > 0 && containerSize.width < currentWidth
-      ? Math.round((containerSize.width / currentWidth) * 100)
-      : 100;
-
   return (
     <div className="h-full w-full flex flex-col bg-background">
       {/* Toolbar */}
@@ -172,6 +196,45 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
             }`}
           />
         </button>
+        <div className="relative" ref={layoutMenuRef}>
+          <button
+            onClick={() => setLayoutMenuOpen((o) => !o)}
+            className="p-1.5 rounded hover:bg-background-tertiary transition-colors flex items-center"
+            title={DEVICE_LABELS[device]}
+          >
+            {(() => {
+              const Icon = DEVICE_ICONS[device];
+              return <Icon className="h-4 w-4 text-foreground-muted" />;
+            })()}
+          </button>
+          {layoutMenuOpen && (
+            <div className="absolute top-full right-0 mt-1 py-1 min-w-[140px] rounded-md border border-border bg-background shadow-lg z-20">
+              {(["responsive", "mobile", "tablet", "desktop"] as const).map(
+                (preset) => {
+                  const Icon = DEVICE_ICONS[preset];
+                  return (
+                    <button
+                      key={preset}
+                      onClick={() => {
+                        setDevice(preset);
+                        setLayoutMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                        device === preset
+                          ? "bg-accent/15 text-accent"
+                          : "text-foreground hover:bg-background-tertiary"
+                      }`}
+                      title={DEVICE_LABELS[preset]}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {DEVICE_LABELS[preset]}
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          )}
+        </div>
         <button
           onClick={handleOpenExternal}
           className="p-1.5 rounded hover:bg-background-tertiary transition-colors"
@@ -179,71 +242,6 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
         >
           <ExternalLink className="h-4 w-4 text-foreground-muted" />
         </button>
-      </div>
-
-      {/* Device Toolbar */}
-      <div className="h-9 border-b border-border flex items-center px-3 gap-1 shrink-0 bg-background-secondary/50">
-        <div className="flex items-center gap-0.5 rounded-md bg-background-tertiary/50 p-0.5">
-          <button
-            onClick={() => setDevice("responsive")}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              device === "responsive"
-                ? "bg-accent/15 text-accent"
-                : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
-            }`}
-            title="Responsive (fit container)"
-          >
-            <Maximize className="h-3 w-3" />
-            <span className="hidden sm:inline">Responsive</span>
-          </button>
-          <button
-            onClick={() => setDevice("mobile")}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              device === "mobile"
-                ? "bg-accent/15 text-accent"
-                : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
-            }`}
-            title="Mobile (375px)"
-          >
-            <Smartphone className="h-3 w-3" />
-            <span className="hidden sm:inline">Mobile</span>
-          </button>
-          <button
-            onClick={() => setDevice("tablet")}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              device === "tablet"
-                ? "bg-accent/15 text-accent"
-                : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
-            }`}
-            title="Tablet (768px)"
-          >
-            <Tablet className="h-3 w-3" />
-            <span className="hidden sm:inline">Tablet</span>
-          </button>
-          <button
-            onClick={() => setDevice("desktop")}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              device === "desktop"
-                ? "bg-accent/15 text-accent"
-                : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
-            }`}
-            title="Desktop (1440px)"
-          >
-            <Monitor className="h-3 w-3" />
-            <span className="hidden sm:inline">Desktop</span>
-          </button>
-        </div>
-
-        <div className="ml-auto flex items-center gap-2 text-xs text-foreground-subtle">
-          {currentWidth && (
-            <span>{currentWidth}px</span>
-          )}
-          {scale !== 100 && (
-            <span className="px-1.5 py-0.5 rounded bg-background-tertiary">
-              {scale}%
-            </span>
-          )}
-        </div>
       </div>
 
       {/* Preview Area */}

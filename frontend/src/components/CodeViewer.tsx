@@ -101,6 +101,7 @@ export function CodeViewer() {
             lineNumbers: "on",
             automaticLayout: true,
             wordWrap: "on",
+            semanticHighlighting: { enabled: false },
           }}
         />
       </div>

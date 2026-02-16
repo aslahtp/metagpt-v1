@@ -284,7 +284,7 @@ export const EDITOR_THEMES: EditorThemeOption[] = [
   },
   {
     id: "cursor-dark",
-    label: "Cursor Dark (Default)",
+    label: "Cursor Dark",
     base: "vs-dark",
     swatch: ["#181818", "#cccccc", "#528bff"],
     data: {
@@ -361,9 +361,50 @@ export const EDITOR_THEMES: EditorThemeOption[] = [
       },
     },
   },
+  {
+    id: "metagpt-home",
+    label: "MetaGPT Home (Default)",
+    base: "vs-dark",
+    swatch: ["#14120b", "#f0ede8", "#e8b86d"],
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "7a756d", fontStyle: "italic" },
+        { token: "keyword", foreground: "e8b86d" },
+        { token: "keyword.control", foreground: "d4a574" },
+        { token: "string", foreground: "c8dbb8" },
+        { token: "string.escape", foreground: "e8d4b8" },
+        { token: "number", foreground: "d4a574" },
+        { token: "type", foreground: "7eb8da" },
+        { token: "function", foreground: "e8d4b8" },
+        { token: "variable", foreground: "f0ede8" },
+        { token: "constant", foreground: "d4a574" },
+        { token: "tag", foreground: "e8b86d" },
+        { token: "attribute.name", foreground: "7eb8da" },
+        { token: "attribute.value", foreground: "c8dbb8" },
+        { token: "delimiter", foreground: "9a958e" },
+        { token: "operator", foreground: "c4b8a8" },
+      ],
+      colors: {
+        "editor.background": "#14120b",
+        "editor.foreground": "#f0ede8",
+        "editor.lineHighlightBackground": "#1d1b15",
+        "editor.selectionBackground": "#2e2a2255",
+        "editorCursor.foreground": "#ffffff",
+        "editorLineNumber.foreground": "#5a564e",
+        "editorLineNumber.activeForeground": "#c4b8a8",
+        "editorIndentGuide.background": "#26241e",
+        "editorIndentGuide.activeBackground": "#2e2a22",
+        "editor.selectionHighlightBackground": "#2e2a2233",
+        "editorBracketMatch.background": "#2e2a2255",
+        "editorBracketMatch.border": "#e8b86d66",
+      },
+    },
+  },
 ];
 
-export const DEFAULT_THEME = "cursor-dark";
+export const DEFAULT_THEME = "metagpt-home";
 
 /** Register all custom themes with Monaco */
 export function registerCustomThemes(monaco: any) {
