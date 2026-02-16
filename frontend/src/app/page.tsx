@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -60,6 +60,9 @@ export default function HomePage() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [activeStep, setActiveStep] = useState(-1);
+  const [pipelineStarted, setPipelineStarted] = useState(false);
+  const pipelineRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -67,6 +70,47 @@ export default function HomePage() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Trigger pipeline animation on scroll into view
+  useEffect(() => {
+    const el = pipelineRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setPipelineStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Cycle through pipeline steps
+  useEffect(() => {
+    if (!pipelineStarted) return;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let step = -1;
+
+    const advance = () => {
+      step++;
+      if (step >= pipeline.length) {
+        timeoutId = setTimeout(() => {
+          setActiveStep(-1);
+          step = -1;
+          timeoutId = setTimeout(advance, 800);
+        }, 2500);
+        return;
+      }
+      setActiveStep(step);
+      timeoutId = setTimeout(advance, 1200);
+    };
+
+    timeoutId = setTimeout(advance, 400);
+    return () => clearTimeout(timeoutId);
+  }, [pipelineStarted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,50 +353,129 @@ export default function HomePage() {
           </div>
 
           {/* Desktop pipeline */}
-          <div className="hidden md:block">
+          <div ref={pipelineRef} className="hidden md:block">
             <div className="grid grid-cols-4 gap-0">
-              {pipeline.map((agent, i) => (
-                <div key={i} className="relative flex flex-col items-center">
-                  {/* Connector line */}
-                  {i < pipeline.length - 1 && (
-                    <div className="absolute top-[18px] left-[calc(50%+20px)] right-[calc(-50%+20px)] border-t border-border" />
-                  )}
-                  {/* Step number dot */}
-                  <div className="relative z-10 w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center mb-4">
-                    <span className="text-xs font-mono font-bold text-foreground">
-                      {agent.step}
-                    </span>
+              {pipeline.map((agent, i) => {
+                const isActive = i <= activeStep;
+                const isCurrent = i === activeStep;
+                return (
+                  <div key={i} className="relative flex flex-col items-center">
+                    {/* Connector line */}
+                    {i < pipeline.length - 1 && (
+                      <div className="absolute top-[18px] left-[calc(50%+20px)] right-[calc(-50%+20px)] h-px">
+                        <div className="absolute inset-0 bg-border" />
+                        <div
+                          className="absolute top-0 left-0 h-full bg-foreground/40 transition-[width] duration-700 ease-out"
+                          style={{ width: activeStep > i ? "100%" : "0%" }}
+                        />
+                      </div>
+                    )}
+                    {/* Step number dot */}
+                    <div
+                      className={`relative z-10 w-9 h-9 rounded-full border flex items-center justify-center mb-4 transition-all duration-500 ${
+                        isActive
+                          ? "border-foreground bg-foreground"
+                          : "border-border bg-background"
+                      }`}
+                      style={{
+                        boxShadow: isCurrent
+                          ? "0 0 16px rgba(255,255,255,0.25)"
+                          : "none",
+                      }}
+                    >
+                      <span
+                        className={`text-xs font-mono font-bold transition-colors duration-500 ${
+                          isActive ? "text-background" : "text-foreground-subtle"
+                        }`}
+                      >
+                        {agent.step}
+                      </span>
+                    </div>
+                    <h3
+                      className={`font-medium text-[15px] mb-1 transition-all duration-500 ${
+                        isActive
+                          ? "text-foreground"
+                          : "text-foreground-subtle"
+                      }`}
+                    >
+                      {agent.name}
+                    </h3>
+                    <p
+                      className={`text-sm transition-all duration-500 ${
+                        isActive
+                          ? "text-foreground-muted"
+                          : "text-foreground-subtle/50"
+                      }`}
+                    >
+                      {agent.desc}
+                    </p>
                   </div>
-                  <h3 className="font-medium text-[15px] mb-1">{agent.name}</h3>
-                  <p className="text-sm text-foreground-muted">{agent.desc}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
           {/* Mobile pipeline */}
           <div className="md:hidden space-y-0">
-            {pipeline.map((agent, i) => (
-              <div key={i} className="flex items-start gap-4">
-                {/* Vertical track */}
-                <div className="flex flex-col items-center">
-                  <div className="w-9 h-9 rounded-full border border-border bg-background flex items-center justify-center shrink-0">
-                    <span className="text-xs font-mono font-bold text-foreground">
-                      {agent.step}
-                    </span>
+            {pipeline.map((agent, i) => {
+              const isActive = i <= activeStep;
+              const isCurrent = i === activeStep;
+              return (
+                <div key={i} className="flex items-start gap-4">
+                  {/* Vertical track */}
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`w-9 h-9 rounded-full border flex items-center justify-center shrink-0 transition-all duration-500 ${
+                        isActive
+                          ? "border-foreground bg-foreground"
+                          : "border-border bg-background"
+                      }`}
+                      style={{
+                        boxShadow: isCurrent
+                          ? "0 0 16px rgba(255,255,255,0.25)"
+                          : "none",
+                      }}
+                    >
+                      <span
+                        className={`text-xs font-mono font-bold transition-colors duration-500 ${
+                          isActive ? "text-background" : "text-foreground-subtle"
+                        }`}
+                      >
+                        {agent.step}
+                      </span>
+                    </div>
+                    {i < pipeline.length - 1 && (
+                      <div className="relative w-px flex-1 my-1 min-h-[32px] bg-border overflow-hidden">
+                        <div
+                          className="absolute top-0 left-0 w-full bg-foreground/40 transition-[height] duration-700 ease-out"
+                          style={{ height: activeStep > i ? "100%" : "0%" }}
+                        />
+                      </div>
+                    )}
                   </div>
-                  {i < pipeline.length - 1 && (
-                    <div className="w-px flex-1 bg-border my-1 min-h-[32px]" />
-                  )}
+                  <div className="pt-1.5 pb-6">
+                    <h3
+                      className={`font-medium text-[15px] mb-0.5 transition-all duration-500 ${
+                        isActive
+                          ? "text-foreground"
+                          : "text-foreground-subtle"
+                      }`}
+                    >
+                      {agent.name}
+                    </h3>
+                    <p
+                      className={`text-sm transition-all duration-500 ${
+                        isActive
+                          ? "text-foreground-muted"
+                          : "text-foreground-subtle/50"
+                      }`}
+                    >
+                      {agent.desc}
+                    </p>
+                  </div>
                 </div>
-                <div className="pt-1.5 pb-6">
-                  <h3 className="font-medium text-[15px] mb-0.5">
-                    {agent.name}
-                  </h3>
-                  <p className="text-sm text-foreground-muted">{agent.desc}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
