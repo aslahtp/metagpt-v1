@@ -11,6 +11,8 @@ import {
   BookOpen,
 } from "lucide-react";
 import StarBorder from "@/components/StarBorder";
+import SplitText from "@/components/SplitText";
+import ShinyText from "@/components/ShinyText";
 
 const features = [
   {
@@ -157,16 +159,36 @@ export default function HomePage() {
           <div className="opacity-0 animate-fade-in-up stagger-1 mb-8">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-1 text-xs text-foreground-muted">
               <Zap className="h-3 w-3" />
-              Powered by Gemini 3 Flash
+              <ShinyText
+                text="Powered by Gemini 3"
+                speed={3}
+                delay={1}
+                color="#b5b5b5"
+                shineColor="#ffffff"
+                spread={120}
+                direction="left"
+                yoyo={false}
+                pauseOnHover={false}
+                disabled={false}
+              />
             </span>
           </div>
 
           {/* Title */}
-          <h1 className="opacity-0 animate-fade-in-up stagger-2 text-4xl sm:text-5xl md:text-6xl font-bold tracking-[-0.04em] leading-[1.08]">
-            Transform Ideas into
-            <br />
-            <span className="text-foreground">Production Code</span>
-          </h1>
+          <SplitText
+            text="Transform Ideas into Production Code"
+            className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-[-0.04em] leading-[1.08]"
+            delay={50}
+            duration={1.25}
+            ease="power3.out"
+            splitType="words"
+            from={{ opacity: 0, y: 40 }}
+            to={{ opacity: 1, y: 0 }}
+            threshold={0.1}
+            rootMargin="-100px"
+            textAlign="center"
+            tag="h1"
+          />
 
           {/* Subtitle */}
           <p className="opacity-0 animate-fade-in-up stagger-3 mt-5 text-lg text-foreground-muted max-w-xl mx-auto text-balance leading-relaxed">
