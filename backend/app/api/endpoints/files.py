@@ -76,6 +76,11 @@ async def list_files(
     file_store = FileStore()
     files = await file_store.list_files(project_id)
 
+    # Restore from MongoDB if disk cache is empty
+    if not files:
+        await service._restore_files_from_db(project_id)
+        files = await file_store.list_files(project_id)
+
     return {
         "project_id": project_id,
         "files": files,
@@ -177,6 +182,10 @@ async def download_project_zip(
     file_store = FileStore()
 
     files_dir = file_store._get_project_files_dir(project_id)
+
+    # Restore from MongoDB if disk cache is empty (e.g. Cloud Run restart)
+    if not files_dir.exists():
+        await service._restore_files_from_db(project_id)
 
     if not files_dir.exists():
         raise HTTPException(

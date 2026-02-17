@@ -322,12 +322,53 @@ class PipelineService:
         """Get a project by ID."""
         return await self.project_store.get(project_id)
 
+    async def _restore_files_from_db(self, project_id: str) -> bool:
+        """
+        Restore project files from MongoDB to disk.
+
+        When Cloud Run containers restart, ephemeral disk storage is lost.
+        This rebuilds the disk cache from the engineer_output stored in MongoDB.
+
+        Returns:
+            True if files were restored, False if no data in DB.
+        """
+        project = await self.project_store.get(project_id)
+        if not project or not project.state.engineer_output:
+            return False
+
+        files = project.state.engineer_output.files
+        if not files:
+            return False
+
+        for file_spec in files:
+            await self.file_store.write_file(project_id, file_spec)
+
+        return True
+
     async def get_file_tree(self, project_id: str):
-        """Get the file tree for a project."""
+        """Get the file tree for a project, restoring from DB if needed."""
+        tree = await self.file_store.get_file_tree(project_id)
+        if tree is not None:
+            return tree
+
+        # Disk cache miss — restore from MongoDB
+        restored = await self._restore_files_from_db(project_id)
+        if not restored:
+            return None
+
         return await self.file_store.get_file_tree(project_id)
 
     async def get_file(self, project_id: str, file_path: str):
-        """Get a specific file from a project."""
+        """Get a specific file from a project, restoring from DB if needed."""
+        result = await self.file_store.read_file(project_id, file_path)
+        if result is not None:
+            return result
+
+        # Disk cache miss — restore all project files from MongoDB
+        restored = await self._restore_files_from_db(project_id)
+        if not restored:
+            return None
+
         return await self.file_store.read_file(project_id, file_path)
 
     async def list_projects(self, limit: int = 50, offset: int = 0, user_id: str | None = None):
