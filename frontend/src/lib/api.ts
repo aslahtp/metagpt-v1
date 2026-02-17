@@ -4,8 +4,28 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
+// ── Auth header helper ──
+
+function getAuthHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const token = localStorage.getItem("metagpt-token");
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
+function authFetch(url: string, init?: RequestInit): Promise<Response> {
+  const headers: Record<string, string> = {
+    ...getAuthHeaders(),
+    ...(init?.headers as Record<string, string> || {}),
+  };
+  return fetch(url, { ...init, headers });
+}
+
+// ── Types ──
+
 export interface Project {
   id: string;
+  user_id: string;
   prompt: string;
   name: string;
   description: string;
@@ -153,34 +173,42 @@ export interface ChatMessage {
   files_modified: string[];
 }
 
-// API Functions
+// ── API Functions ──
 
 export async function createProject(prompt: string): Promise<Project> {
-  const res = await fetch(`${API_BASE}/api/v1/projects`, {
+  const res = await authFetch(`${API_BASE}/api/v1/projects`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ prompt }),
   });
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
+  if (res.status === 403) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || "CREDIT_LIMIT");
+  }
   if (!res.ok) throw new Error("Failed to create project");
   return res.json();
 }
 
 export async function getProject(projectId: string): Promise<Project> {
-  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}`);
+  const res = await authFetch(`${API_BASE}/api/v1/projects/${projectId}`);
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
   if (!res.ok) throw new Error("Project not found");
   return res.json();
 }
 
 export async function runPipeline(projectId: string): Promise<Project> {
-  const res = await fetch(`${API_BASE}/api/v1/pipeline/${projectId}/run`, {
+  const res = await authFetch(`${API_BASE}/api/v1/pipeline/${projectId}/run`, {
     method: "POST",
   });
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
   if (!res.ok) throw new Error("Failed to run pipeline");
   return res.json();
 }
 
 export async function getFileTree(projectId: string): Promise<FileTree> {
-  const res = await fetch(`${API_BASE}/api/v1/files/${projectId}/tree`);
+  const res = await authFetch(`${API_BASE}/api/v1/files/${projectId}/tree`);
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
   if (!res.ok) throw new Error("Failed to get file tree");
   return res.json();
 }
@@ -189,11 +217,11 @@ export async function getFileContent(
   projectId: string,
   filePath: string
 ): Promise<{ path: string; content: string; language: string }> {
-  // Remove leading slash if present and don't encode slashes
   const cleanPath = filePath.replace(/^\/+/, "");
-  const res = await fetch(
+  const res = await authFetch(
     `${API_BASE}/api/v1/files/${projectId}/content/${cleanPath}`
   );
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
   if (!res.ok) throw new Error("Failed to get file content");
   return res.json();
 }
@@ -212,11 +240,12 @@ export async function sendChatMessage(
   if (model) {
     body.model = model;
   }
-  const res = await fetch(`${API_BASE}/api/v1/chat/${projectId}`, {
+  const res = await authFetch(`${API_BASE}/api/v1/chat/${projectId}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(body),
   });
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
   if (!res.ok) throw new Error("Failed to send message");
   return res.json();
 }
@@ -224,18 +253,19 @@ export async function sendChatMessage(
 export async function getPipelineArtifacts(
   projectId: string
 ): Promise<{ project_id: string; artifacts: Record<string, unknown> }> {
-  const res = await fetch(`${API_BASE}/api/v1/pipeline/${projectId}/artifacts`);
+  const res = await authFetch(`${API_BASE}/api/v1/pipeline/${projectId}/artifacts`);
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
   if (!res.ok) throw new Error("Failed to get artifacts");
   return res.json();
 }
 
 export async function downloadProjectZip(projectId: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/v1/files/${projectId}/download`);
+  const res = await authFetch(`${API_BASE}/api/v1/files/${projectId}/download`);
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
   if (!res.ok) throw new Error("Failed to download project");
 
   const blob = await res.blob();
 
-  // Extract filename from Content-Disposition header, fallback to project id
   const disposition = res.headers.get("Content-Disposition");
   let filename = `${projectId}.zip`;
   if (disposition) {
@@ -243,7 +273,6 @@ export async function downloadProjectZip(projectId: string): Promise<void> {
     if (match) filename = match[1];
   }
 
-  // Create a temporary link to trigger the browser download
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -259,9 +288,14 @@ export async function streamPipeline(
   onEvent: (event: { type: string; data: Record<string, unknown> }) => void,
   onError: (error: Error) => void
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/v1/pipeline/${projectId}/stream`, {
+  const res = await authFetch(`${API_BASE}/api/v1/pipeline/${projectId}/stream`, {
     method: "POST",
   });
+
+  if (res.status === 401) {
+    onError(new Error("UNAUTHORIZED"));
+    return;
+  }
 
   if (!res.ok) {
     onError(new Error("Failed to start pipeline stream"));
@@ -284,7 +318,6 @@ export async function streamPipeline(
 
       buffer += decoder.decode(value, { stream: true });
 
-      // SSE events are separated by double newlines
       const parts = buffer.split("\n\n");
       buffer = parts.pop() || "";
 
@@ -300,7 +333,6 @@ export async function streamPipeline(
           } else if (line.startsWith("data:")) {
             dataLines.push(line.slice(5).trim());
           }
-          // Ignore comments (lines starting with :) and other fields
         }
 
         if (dataLines.length > 0) {

@@ -36,18 +36,19 @@ class PipelineService:
         self.file_store = FileStore()
         self.pipeline = AgentPipeline()
 
-    async def create_project(self, prompt: str) -> Project:
+    async def create_project(self, prompt: str, user_id: str = "") -> Project:
         """
         Create a new project from a user prompt.
 
         Args:
             prompt: User's natural language prompt
+            user_id: Owner user ID
 
         Returns:
             Created Project
         """
         project_id = str(uuid.uuid4())[:8]
-        return await self.project_store.create(project_id, prompt)
+        return await self.project_store.create(project_id, prompt, user_id=user_id)
 
     async def run_pipeline(
         self,
@@ -329,6 +330,6 @@ class PipelineService:
         """Get a specific file from a project."""
         return await self.file_store.read_file(project_id, file_path)
 
-    async def list_projects(self, limit: int = 50, offset: int = 0):
-        """List all projects."""
-        return await self.project_store.list_projects(limit, offset)
+    async def list_projects(self, limit: int = 50, offset: int = 0, user_id: str | None = None):
+        """List projects, optionally filtered by user."""
+        return await self.project_store.list_projects(limit, offset, user_id=user_id)

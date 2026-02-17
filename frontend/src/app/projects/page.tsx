@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Plus,
@@ -12,15 +13,33 @@ import {
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import type { Project } from "@/lib/api";
+import { useAuthStore } from "@/lib/authStore";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { token, initialize } = useAuthStore();
 
   useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  useEffect(() => {
+    if (!token) {
+      router.replace("/signin");
+      return;
+    }
+
     async function fetchProjects() {
       try {
-        const res = await fetch("/api/v1/projects");
+        const res = await fetch("/api/v1/projects", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === 401) {
+          router.replace("/signin");
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           setProjects(data);
@@ -33,7 +52,7 @@ export default function ProjectsPage() {
     }
 
     fetchProjects();
-  }, []);
+  }, [token, router]);
 
   const getStatusIcon = (stage: string) => {
     switch (stage) {

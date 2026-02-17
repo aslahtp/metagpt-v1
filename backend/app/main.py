@@ -24,6 +24,11 @@ async def lifespan(app: FastAPI):
     print(f"Starting {settings.app_name} v{settings.app_version}")
     print(f"LLM Configuration: {get_llm_config()}")
 
+    # Initialize MongoDB
+    from app.db import init_db
+
+    await init_db()
+
     yield
 
     # Shutdown

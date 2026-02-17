@@ -2,8 +2,10 @@
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.auth import get_current_user
+from app.models.user import User
 from app.schemas.projects import Project, ProjectCreate
 from app.services import PipelineService
 
@@ -11,15 +13,32 @@ router = APIRouter()
 
 
 @router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
-async def create_project(request: ProjectCreate) -> Project:
+async def create_project(
+    request: ProjectCreate,
+    user: User = Depends(get_current_user),
+) -> Project:
     """
     Create a new project from a natural language prompt.
 
-    This creates the project record but does NOT execute the pipeline.
-    Use POST /pipeline/{project_id}/run to execute the agent pipeline.
+    Requires authentication. Checks credit limits for free users.
+    Premium users bypass credit checks.
     """
+    if not user.has_credits():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"You've used all your free credits ({user.credits_used}/{user.credits_limit}). "
+                "Upgrade to premium for unlimited projects."
+            ),
+        )
+
     service = PipelineService()
-    project = await service.create_project(request.prompt)
+    project = await service.create_project(request.prompt, user_id=str(user.id))
+
+    # Increment credits used
+    user.credits_used += 1
+    await user.save()
+
     return project
 
 
@@ -27,22 +46,27 @@ async def create_project(request: ProjectCreate) -> Project:
 async def list_projects(
     limit: int = 50,
     offset: int = 0,
+    user: User = Depends(get_current_user),
 ) -> list[Project]:
     """
-    List all projects.
+    List projects for the current user.
 
     Returns projects sorted by most recently updated.
     """
     service = PipelineService()
-    return await service.list_projects(limit, offset)
+    return await service.list_projects(limit, offset, user_id=str(user.id))
 
 
 @router.get("/{project_id}", response_model=Project)
-async def get_project(project_id: str) -> Project:
+async def get_project(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> Project:
     """
     Get a project by ID.
 
     Returns the complete project state including all agent outputs.
+    Only the project owner can access it.
     """
     service = PipelineService()
     project = await service.get_project(project_id)
@@ -53,11 +77,20 @@ async def get_project(project_id: str) -> Project:
             detail=f"Project {project_id} not found",
         )
 
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
+        )
+
     return project
 
 
 @router.get("/{project_id}/state")
-async def get_project_state(project_id: str) -> dict[str, Any]:
+async def get_project_state(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     Get the current state of a project.
 
@@ -70,6 +103,12 @@ async def get_project_state(project_id: str) -> dict[str, Any]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Project {project_id} not found",
+        )
+
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
         )
 
     return {
@@ -86,11 +125,12 @@ async def get_project_state(project_id: str) -> dict[str, Any]:
 
 
 @router.get("/{project_id}/reasoning")
-async def get_agent_reasoning(project_id: str) -> dict[str, Any]:
+async def get_agent_reasoning(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     Get the reasoning from all agents for a project.
-
-    Useful for understanding how agents made their decisions.
     """
     service = PipelineService()
     project = await service.get_project(project_id)
@@ -99,6 +139,12 @@ async def get_agent_reasoning(project_id: str) -> dict[str, Any]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Project {project_id} not found",
+        )
+
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
         )
 
     reasoning = {}
@@ -134,11 +180,12 @@ async def get_agent_reasoning(project_id: str) -> dict[str, Any]:
 
 
 @router.get("/{project_id}/preview")
-async def get_preview_metadata(project_id: str) -> dict[str, Any]:
+async def get_preview_metadata(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     Get preview metadata for a project.
-
-    Indicates whether the project supports React preview.
     """
     service = PipelineService()
     project = await service.get_project(project_id)
@@ -147,6 +194,12 @@ async def get_preview_metadata(project_id: str) -> dict[str, Any]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Project {project_id} not found",
+        )
+
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
         )
 
     return {

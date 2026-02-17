@@ -31,7 +31,19 @@ class Settings(BaseSettings):
     llm_max_tokens: int | None = None
     llm_timeout: int = 120
 
-    # Storage
+    # MongoDB
+    mongodb_uri: str = "mongodb://localhost:27017"
+    mongodb_db: str = "metagpt"
+
+    # JWT Authentication
+    jwt_secret: str = "change-this-secret-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expiration_hours: int = 24
+
+    # Credits
+    free_credits: int = 2
+
+    # Storage (file-based storage kept for generated code files)
     projects_dir: str = "./projects"
     storage_type: Literal["file", "memory"] = "file"
 

@@ -74,6 +74,7 @@ class Project(BaseModel):
     """Complete project representation."""
 
     id: str = Field(..., description="Unique project identifier")
+    user_id: str = Field(default="", description="Owner user ID")
     prompt: str = Field(..., description="Original user prompt")
     name: str = Field(default="", description="Project name (set by Manager)")
     description: str = Field(default="", description="Project description")

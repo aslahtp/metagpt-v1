@@ -3,10 +3,11 @@
 import json
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, status
 from sse_starlette.sse import EventSourceResponse
 
+from app.auth import get_current_user
+from app.models.user import User
 from app.schemas.projects import Project, ProjectCreate
 from app.services import PipelineService
 
@@ -14,40 +15,60 @@ router = APIRouter()
 
 
 @router.post("/run", response_model=Project)
-async def run_pipeline(request: ProjectCreate) -> Project:
+async def run_pipeline(
+    request: ProjectCreate,
+    user: User = Depends(get_current_user),
+) -> Project:
     """
     Create a project and run the complete agent pipeline.
 
-    This is the main entry point for generating a project from a prompt.
-    Executes: Manager → Architect → Engineer → QA
-
-    Returns the complete project with all agent outputs.
-    Note: This is a synchronous call that waits for pipeline completion.
-    For streaming updates, use POST /pipeline/stream instead.
+    Requires authentication. Checks credit limits for free users.
     """
+    if not user.has_credits():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"You've used all your free credits ({user.credits_used}/{user.credits_limit}). "
+                "Upgrade to premium for unlimited projects."
+            ),
+        )
+
     service = PipelineService()
-    project = await service.create_project(request.prompt)
+    project = await service.create_project(request.prompt, user_id=str(user.id))
+
+    # Increment credits used
+    user.credits_used += 1
+    await user.save()
+
     project = await service.run_pipeline(project.id, request.prompt)
     return project
 
 
 @router.post("/stream")
-async def stream_pipeline(request: ProjectCreate):
+async def stream_pipeline(
+    request: ProjectCreate,
+    user: User = Depends(get_current_user),
+):
     """
     Create a project and stream the agent pipeline execution.
 
-    Returns a Server-Sent Events (SSE) stream with real-time updates
-    as each agent completes.
-
-    Event types:
-    - pipeline_start: Pipeline execution started
-    - agent_complete: An agent has completed
-    - file_generated: A file was generated
-    - pipeline_complete: Pipeline finished successfully
-    - pipeline_error: An error occurred
+    Requires authentication. Checks credit limits for free users.
     """
+    if not user.has_credits():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"You've used all your free credits ({user.credits_used}/{user.credits_limit}). "
+                "Upgrade to premium for unlimited projects."
+            ),
+        )
+
     service = PipelineService()
-    project = await service.create_project(request.prompt)
+    project = await service.create_project(request.prompt, user_id=str(user.id))
+
+    # Increment credits used
+    user.credits_used += 1
+    await user.save()
 
     async def event_generator():
         try:
@@ -69,12 +90,14 @@ async def stream_pipeline(request: ProjectCreate):
 
 
 @router.post("/{project_id}/run", response_model=Project)
-async def run_project_pipeline(project_id: str) -> Project:
+async def run_project_pipeline(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> Project:
     """
     Run the pipeline for an existing project.
 
-    Use this to (re-)run the pipeline for a project that was created
-    but not yet executed, or to regenerate a project.
+    Does NOT consume credits (project already created).
     """
     service = PipelineService()
     project = await service.get_project(project_id)
@@ -85,16 +108,25 @@ async def run_project_pipeline(project_id: str) -> Project:
             detail=f"Project {project_id} not found",
         )
 
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
+        )
+
     project = await service.run_pipeline(project_id, project.prompt)
     return project
 
 
 @router.post("/{project_id}/stream")
-async def stream_project_pipeline(project_id: str):
+async def stream_project_pipeline(
+    project_id: str,
+    user: User = Depends(get_current_user),
+):
     """
     Stream pipeline execution for an existing project.
 
-    Similar to POST /pipeline/stream but for an existing project.
+    Does NOT consume credits (project already created).
     """
     service = PipelineService()
     project = await service.get_project(project_id)
@@ -103,6 +135,12 @@ async def stream_project_pipeline(project_id: str):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Project {project_id} not found",
+        )
+
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
         )
 
     async def event_generator():
@@ -125,11 +163,12 @@ async def stream_project_pipeline(project_id: str):
 
 
 @router.get("/{project_id}/status")
-async def get_pipeline_status(project_id: str) -> dict[str, Any]:
+async def get_pipeline_status(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     Get the current pipeline status for a project.
-
-    Returns the current stage, progress, and any error information.
     """
     service = PipelineService()
     project = await service.get_project(project_id)
@@ -138,6 +177,12 @@ async def get_pipeline_status(project_id: str) -> dict[str, Any]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Project {project_id} not found",
+        )
+
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
         )
 
     status_data = project.state.pipeline_status
@@ -153,11 +198,12 @@ async def get_pipeline_status(project_id: str) -> dict[str, Any]:
 
 
 @router.get("/{project_id}/artifacts")
-async def get_pipeline_artifacts(project_id: str) -> dict[str, Any]:
+async def get_pipeline_artifacts(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     Get all artifacts (agent outputs) from a pipeline execution.
-
-    Returns the complete output from each agent.
     """
     service = PipelineService()
     project = await service.get_project(project_id)
@@ -166,6 +212,12 @@ async def get_pipeline_artifacts(project_id: str) -> dict[str, Any]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Project {project_id} not found",
+        )
+
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
         )
 
     artifacts = {}

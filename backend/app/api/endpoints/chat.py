@@ -2,33 +2,47 @@
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.auth import get_current_user
+from app.models.user import User
 from app.schemas.projects import ChatMessage, ChatRequest, ChatResponse
-from app.services import ChatService
+from app.services import ChatService, PipelineService
 
 router = APIRouter()
+
+
+async def _verify_project_owner(project_id: str, user: User):
+    """Verify the project exists and belongs to the user."""
+    service = PipelineService()
+    project = await service.get_project(project_id)
+
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
+        )
+
+    return project
 
 
 @router.post("/{project_id}", response_model=ChatResponse)
 async def send_chat_message(
     project_id: str,
     request: ChatRequest,
+    user: User = Depends(get_current_user),
 ) -> ChatResponse:
     """
     Send a chat message to update a project.
-
-    This endpoint processes user messages and determines which agents
-    need to be re-executed to fulfill the request.
-
-    The system will:
-    1. Analyze the message to classify intent
-    2. Determine which agents need to run
-    3. Execute the required agents
-    4. Update only the affected files
-
-    This enables incremental updates without regenerating the entire project.
     """
+    await _verify_project_owner(project_id, user)
+
     service = ChatService()
 
     try:
@@ -50,12 +64,13 @@ async def send_chat_message(
 async def get_chat_history(
     project_id: str,
     limit: int = 50,
+    user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """
     Get chat history for a project.
-
-    Returns the list of chat messages exchanged for this project.
     """
+    await _verify_project_owner(project_id, user)
+
     service = ChatService()
 
     try:
@@ -75,31 +90,18 @@ async def get_chat_history(
 @router.post("/{project_id}/suggest")
 async def get_suggestions(
     project_id: str,
+    user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """
     Get AI-powered suggestions for what to do next.
-
-    Based on the current project state, suggests possible improvements
-    or next steps.
     """
-    from app.services import PipelineService
+    project = await _verify_project_owner(project_id, user)
 
-    pipeline_service = PipelineService()
-    project = await pipeline_service.get_project(project_id)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
-
-    # Generate suggestions based on project state
     suggestions = []
 
     if project.state.qa_output:
         qa = project.state.qa_output
 
-        # Suggest based on QA findings
         if qa.approval_status == "needs-revision":
             for note in qa.validation_notes[:3]:
                 if note.severity in ["error", "warning"]:
@@ -110,7 +112,6 @@ async def get_suggestions(
                         "action": note.recommendation,
                     })
 
-        # Suggest adding tests if coverage is low
         if "low" in qa.test_coverage_estimate.lower():
             suggestions.append({
                 "type": "enhancement",
@@ -119,7 +120,6 @@ async def get_suggestions(
                 "action": "Add more unit tests for critical components",
             })
 
-    # Default suggestions if none from QA
     if not suggestions:
         suggestions = [
             {

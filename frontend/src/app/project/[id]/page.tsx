@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Code,
@@ -23,6 +23,7 @@ import {
   downloadProjectZip,
 } from "@/lib/api";
 import { useProjectStore } from "@/lib/store";
+import { useAuthStore } from "@/lib/authStore";
 import { EDITOR_THEMES } from "@/lib/editorThemes";
 import { ExecutionTimeline } from "@/components/ExecutionTimeline";
 import { FileExplorer } from "@/components/FileExplorer";
@@ -34,6 +35,18 @@ import { PreviewFrame } from "@/components/PreviewFrame";
 export default function ProjectPage() {
   const params = useParams();
   const projectId = params.id as string;
+  const router = useRouter();
+  const { token, initialize } = useAuthStore();
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  useEffect(() => {
+    if (!token) {
+      router.replace("/signin");
+    }
+  }, [token, router]);
 
   const {
     project,
@@ -111,7 +124,12 @@ export default function ProjectPage() {
       setCurrentAgent(projectData.state.pipeline_status?.current_agent || null);
 
       return projectData;
-    } catch (err) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "";
+      if (message === "UNAUTHORIZED") {
+        router.replace("/signin");
+        return null;
+      }
       setError("Failed to load project");
       return null;
     }
@@ -122,6 +140,7 @@ export default function ProjectPage() {
     setGeneratedFiles,
     setProgress,
     setCurrentAgent,
+    router,
   ]);
 
   // Run pipeline with fire-and-forget + polling for real-time progress
