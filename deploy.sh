@@ -116,10 +116,9 @@ echo "    Backend deployed at: ${BACKEND_URL}"
 # ─────────────────────────────────────────────
 # Step 5: Build and push frontend image
 # ─────────────────────────────────────────────
-echo "[5/7] Building frontend image via Cloud Build (with backend URL)..."
+echo "[5/7] Building frontend image via Cloud Build..."
 gcloud builds submit ./frontend \
-    --config ./frontend/cloudbuild.yaml \
-    --substitutions="_NEXT_PUBLIC_API_URL=${BACKEND_URL},_IMAGE_TAG=${FRONTEND_IMAGE}" \
+    --tag "${FRONTEND_IMAGE}" \
     --quiet
 
 # ─────────────────────────────────────────────
@@ -136,7 +135,7 @@ gcloud run deploy "${FRONTEND_SERVICE}" \
     --cpu 1 \
     --min-instances 0 \
     --max-instances 3 \
-    --set-env-vars "NEXT_PUBLIC_API_URL=${BACKEND_URL}" \
+    --set-env-vars "API_URL=${BACKEND_URL}" \
     --quiet
 
 # Get frontend URL
