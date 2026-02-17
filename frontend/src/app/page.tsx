@@ -9,11 +9,14 @@ import {
   CheckCircle,
   Zap,
   BookOpen,
+  LogOut,
+  Crown,
 } from "lucide-react";
 import StarBorder from "@/components/StarBorder";
 import SplitText from "@/components/SplitText";
 import ShinyText from "@/components/ShinyText";
 import SpotlightCard from "@/components/SpotLightCard";
+import { useAuthStore } from "@/lib/authStore";
 
 const features = [
   {
@@ -62,8 +65,15 @@ export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [activeStep, setActiveStep] = useState(-1);
   const [pipelineStarted, setPipelineStarted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const pipelineRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const { user, token, initialize, signout, isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -116,24 +126,36 @@ export default function HomePage() {
     e.preventDefault();
     if (!prompt.trim() || isLoading) return;
 
+    // Require auth before creating a project
+    if (!token) {
+      router.push("/signin");
+      return;
+    }
+
     setIsLoading(true);
+    setSubmitError(null);
 
     try {
-      const response = await fetch("/api/v1/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim() }),
-      });
-
-      if (!response.ok) throw new Error("Failed to create project");
-
-      const project = await response.json();
+      const { createProject } = await import("@/lib/api");
+      const project = await createProject(prompt.trim());
       router.push(`/project/${project.id}`);
-    } catch (error) {
-      console.error("Error:", error);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Something went wrong";
+      if (message === "UNAUTHORIZED") {
+        router.push("/signin");
+        return;
+      }
+      if (message.includes("free credits") || message === "CREDIT_LIMIT") {
+        setSubmitError(message);
+      } else {
+        setSubmitError("Failed to create project. Please try again.");
+      }
       setIsLoading(false);
     }
   };
+
+  const authed = isAuthenticated();
 
   return (
     <main className="min-h-screen flex flex-col relative">
@@ -161,7 +183,7 @@ export default function HomePage() {
             marginTop: scrolled ? "0.75rem" : "0px",
             backgroundColor: scrolled
               ? "rgba(29,27,21,0.8)"
-              : "rgba(20,18,11,0.8)", // matches bg-background
+              : "rgba(20,18,11,0.8)",
             borderColor: scrolled ? "#2e2a22" : "transparent",
             borderBottomColor: "#2e2a22",
             boxShadow: scrolled
@@ -187,12 +209,49 @@ export default function HomePage() {
             >
               Docs
             </a>
-            <a
-              href="/projects"
-              className="text-foreground-muted hover:text-foreground text-sm transition-colors duration-200"
-            >
-              Projects
-            </a>
+            {authed && (
+              <a
+                href="/projects"
+                className="text-foreground-muted hover:text-foreground text-sm transition-colors duration-200"
+              >
+                Projects
+              </a>
+            )}
+
+            {authed && user ? (
+              <div className="flex items-center gap-3">
+                {/* Credits indicator */}
+                {user.is_premium_user ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-medium">
+                    <Crown className="h-3 w-3" />
+                    Premium
+                  </span>
+                ) : (
+                  <span className="text-xs text-foreground-subtle">
+                    {user.remaining_credits !== null
+                      ? `${user.remaining_credits} credit${user.remaining_credits !== 1 ? "s" : ""} left`
+                      : ""}
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    signout();
+                    router.push("/");
+                  }}
+                  className="text-foreground-subtle hover:text-foreground-muted transition-colors duration-200"
+                  title="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <a
+                href="/signin"
+                className="text-foreground-muted hover:text-foreground text-sm transition-colors duration-200"
+              >
+                Sign In
+              </a>
+            )}
           </nav>
         </header>
       </div>
@@ -241,6 +300,15 @@ export default function HomePage() {
             implement, and validate your project — automatically.
           </p>
 
+          {/* Error message */}
+          {submitError && (
+            <div className="opacity-0 animate-fade-in-up mt-4 max-w-2xl mx-auto">
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                {submitError}
+              </div>
+            </div>
+          )}
+
           {/* Prompt Form */}
           <form
             onSubmit={handleSubmit}
@@ -256,7 +324,10 @@ export default function HomePage() {
               <div className="relative rounded-2xl bg-background-secondary">
                 <textarea
                   value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  onChange={(e) => {
+                    setPrompt(e.target.value);
+                    if (submitError) setSubmitError(null);
+                  }}
                   placeholder="Describe the application you want to build..."
                   rows={3}
                   className={`w-full resize-none rounded-2xl bg-transparent px-5 pt-4 text-[15px] text-foreground placeholder:text-foreground-subtle focus:outline-none transition-[padding] duration-300 ${prompt.trim() || isLoading ? "pb-14" : "pb-4"}`}

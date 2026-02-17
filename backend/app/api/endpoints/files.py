@@ -4,10 +4,12 @@ import io
 import zipfile
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from app.auth import get_current_user
+from app.models.user import User
 from app.schemas.files import FileTree, GeneratedFile
 from app.services import PipelineService
 
@@ -19,13 +21,8 @@ class FileUpdateRequest(BaseModel):
     content: str
 
 
-@router.get("/{project_id}/tree", response_model=FileTree)
-async def get_file_tree(project_id: str) -> FileTree:
-    """
-    Get the file tree for a project.
-
-    Returns a hierarchical view of all generated files.
-    """
+async def _get_project_for_user(project_id: str, user: User):
+    """Helper to fetch a project and verify ownership."""
     service = PipelineService()
     project = await service.get_project(project_id)
 
@@ -34,6 +31,25 @@ async def get_file_tree(project_id: str) -> FileTree:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Project {project_id} not found",
         )
+
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
+        )
+
+    return project, service
+
+
+@router.get("/{project_id}/tree", response_model=FileTree)
+async def get_file_tree(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> FileTree:
+    """
+    Get the file tree for a project.
+    """
+    project, service = await _get_project_for_user(project_id, user)
 
     file_tree = await service.get_file_tree(project_id)
 
@@ -47,20 +63,14 @@ async def get_file_tree(project_id: str) -> FileTree:
 
 
 @router.get("/{project_id}/list")
-async def list_files(project_id: str) -> dict[str, Any]:
+async def list_files(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     List all files in a project.
-
-    Returns a flat list of file paths.
     """
-    service = PipelineService()
-    project = await service.get_project(project_id)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+    project, service = await _get_project_for_user(project_id, user)
 
     from app.storage import FileStore
     file_store = FileStore()
@@ -74,22 +84,15 @@ async def list_files(project_id: str) -> dict[str, Any]:
 
 
 @router.get("/{project_id}/content/{file_path:path}", response_model=GeneratedFile)
-async def get_file_content(project_id: str, file_path: str) -> GeneratedFile:
+async def get_file_content(
+    project_id: str,
+    file_path: str,
+    user: User = Depends(get_current_user),
+) -> GeneratedFile:
     """
     Get the content of a specific file.
-
-    Args:
-        project_id: Project identifier
-        file_path: Path to the file within the project
     """
-    service = PipelineService()
-    project = await service.get_project(project_id)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+    project, service = await _get_project_for_user(project_id, user)
 
     file = await service.get_file(project_id, file_path)
 
@@ -107,20 +110,12 @@ async def update_file_content(
     project_id: str,
     file_path: str,
     request: FileUpdateRequest,
+    user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """
     Update the content of a specific file.
-
-    This allows direct file editing without going through agents.
     """
-    service = PipelineService()
-    project = await service.get_project(project_id)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+    project, service = await _get_project_for_user(project_id, user)
 
     from app.storage import FileStore
     file_store = FileStore()
@@ -141,18 +136,15 @@ async def update_file_content(
 
 
 @router.delete("/{project_id}/content/{file_path:path}")
-async def delete_file(project_id: str, file_path: str) -> dict[str, Any]:
+async def delete_file(
+    project_id: str,
+    file_path: str,
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     Delete a file from the project.
     """
-    service = PipelineService()
-    project = await service.get_project(project_id)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+    project, service = await _get_project_for_user(project_id, user)
 
     from app.storage import FileStore
     file_store = FileStore()
@@ -172,20 +164,14 @@ async def delete_file(project_id: str, file_path: str) -> dict[str, Any]:
 
 
 @router.get("/{project_id}/download")
-async def download_project_zip(project_id: str) -> StreamingResponse:
+async def download_project_zip(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> StreamingResponse:
     """
     Download all project files as a zip archive.
-
-    Returns a streaming zip file containing the entire generated codebase.
     """
-    service = PipelineService()
-    project = await service.get_project(project_id)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+    project, service = await _get_project_for_user(project_id, user)
 
     from app.storage import FileStore
     file_store = FileStore()
@@ -198,14 +184,11 @@ async def download_project_zip(project_id: str) -> StreamingResponse:
             detail=f"No files found for project {project_id}",
         )
 
-    # Determine a clean archive name from the project
     archive_name = (project.name or project_id).strip()
-    # Sanitize for use as a filename
     archive_name = "".join(
         c if c.isalnum() or c in ("-", "_", " ") else "_" for c in archive_name
     ).strip() or project_id
 
-    # Build the zip in memory
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         for file_path in sorted(files_dir.rglob("*")):
@@ -226,20 +209,14 @@ async def download_project_zip(project_id: str) -> StreamingResponse:
 
 
 @router.get("/{project_id}/generated")
-async def get_generated_files_summary(project_id: str) -> dict[str, Any]:
+async def get_generated_files_summary(
+    project_id: str,
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     Get a summary of generated files from the Engineer agent.
-
-    Returns file information without full content.
     """
-    service = PipelineService()
-    project = await service.get_project(project_id)
-
-    if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+    project, service = await _get_project_for_user(project_id, user)
 
     if not project.state.engineer_output:
         return {
