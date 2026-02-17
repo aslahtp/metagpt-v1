@@ -10,6 +10,9 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "MetaGPT",
   description: "AI-powered code generation with SOP-driven agents",
+  icons: {
+    icon: "/icons/favicon.svg",
+  },
 };
 
 export default function RootLayout({
