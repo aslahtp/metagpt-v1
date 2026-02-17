@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 4%;
+    --background: 44 30% 5%;
     --foreground: 0 0% 98%;
   }
 
@@ -33,6 +33,11 @@
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-foreground-subtle;
+  }
+
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
   }
 }
 
@@ -94,4 +99,22 @@
   .glass {
     @apply bg-background-secondary/80 backdrop-blur-xl;
   }
+
+  /* Staggered animation delays */
+  .stagger-1 {
+    animation-delay: 0ms;
+  }
+  .stagger-2 {
+    animation-delay: 100ms;
+  }
+  .stagger-3 {
+    animation-delay: 200ms;
+  }
+  .stagger-4 {
+    animation-delay: 300ms;
+  }
+  .stagger-5 {
+    animation-delay: 400ms;
+  }
+
 }

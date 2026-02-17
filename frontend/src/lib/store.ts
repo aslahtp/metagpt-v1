@@ -4,6 +4,17 @@
 
 import { create } from "zustand";
 import type { Project, FileTreeNode, ChatMessage, GeneratedFile } from "./api";
+import { DEFAULT_THEME } from "./editorThemes";
+
+// Helper to safely read from localStorage
+function getStoredTheme(): string {
+  if (typeof window === "undefined") return DEFAULT_THEME;
+  try {
+    return localStorage.getItem("metagpt-editor-theme") || DEFAULT_THEME;
+  } catch {
+    return DEFAULT_THEME;
+  }
+}
 
 interface ProjectStore {
   // Current project
@@ -49,6 +60,14 @@ interface ProjectStore {
   // Preview frame state
   previewInitialized: boolean;
   setPreviewInitialized: (initialized: boolean) => void;
+
+  // Editor theme
+  editorTheme: string;
+  setEditorTheme: (theme: string) => void;
+
+  // File explorer settings
+  hideNodeModules: boolean;
+  setHideNodeModules: (hide: boolean) => void;
 
   // Reset
   reset: () => void;
@@ -114,6 +133,19 @@ export const useProjectStore = create<ProjectStore>((set) => ({
   previewInitialized: false,
   setPreviewInitialized: (initialized) =>
     set({ previewInitialized: initialized }),
+
+  // Editor theme (persisted to localStorage)
+  editorTheme: getStoredTheme(),
+  setEditorTheme: (theme) => {
+    try {
+      localStorage.setItem("metagpt-editor-theme", theme);
+    } catch {}
+    set({ editorTheme: theme });
+  },
+
+  // File explorer settings
+  hideNodeModules: true,
+  setHideNodeModules: (hide) => set({ hideNodeModules: hide }),
 
   // Reset
   reset: () =>

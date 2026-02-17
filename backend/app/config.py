@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     # LLM Configuration - Gemini 3 Flash
     google_api_key: str = ""
     llm_model: str = "gemini-2.0-flash"
-    llm_temperature: float = 0.7
-    llm_max_tokens: int = 8192
+    llm_temperature: float | None = None
+    llm_max_tokens: int | None = None
     llm_timeout: int = 120
 
     # Storage

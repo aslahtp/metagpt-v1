@@ -17,7 +17,8 @@ interface FileExplorerProps {
 }
 
 export function FileExplorer({ onSelectFile }: FileExplorerProps) {
-  const { fileTree, selectedFile, generatedFiles } = useProjectStore();
+  const { fileTree, selectedFile, generatedFiles, hideNodeModules } =
+    useProjectStore();
 
   if (!fileTree && generatedFiles.length === 0) {
     return (
@@ -33,16 +34,26 @@ export function FileExplorer({ onSelectFile }: FileExplorerProps) {
   // Build tree from generated files if no file tree
   const tree = fileTree || buildTreeFromFiles(generatedFiles);
 
+  // Render children of root directly (skip the root "files" wrapper)
+  const children = tree?.children ?? [];
+
   return (
     <div className="py-2">
-      {tree && (
-        <TreeNode
-          node={tree}
-          selectedPath={selectedFile}
-          onSelect={onSelectFile}
-          depth={0}
-        />
-      )}
+      {children
+        .sort((a, b) => {
+          if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        })
+        .map((child) => (
+          <TreeNode
+            key={child.path}
+            node={child}
+            selectedPath={selectedFile}
+            onSelect={onSelectFile}
+            depth={0}
+            hideNodeModules={hideNodeModules}
+          />
+        ))}
     </div>
   );
 }
@@ -52,13 +63,19 @@ interface TreeNodeProps {
   selectedPath: string | null;
   onSelect: (path: string) => void;
   depth: number;
+  hideNodeModules: boolean;
 }
 
-function TreeNode({ node, selectedPath, onSelect, depth }: TreeNodeProps) {
+function TreeNode({ node, selectedPath, onSelect, depth, hideNodeModules }: TreeNodeProps) {
   const [expanded, setExpanded] = useState(depth < 2);
 
   const isDirectory = node.type === "directory";
   const isSelected = node.path === selectedPath;
+
+  // Skip node_modules directories when hidden
+  if (hideNodeModules && isDirectory && node.name === "node_modules") {
+    return null;
+  }
 
   const handleClick = () => {
     if (isDirectory) {
@@ -121,6 +138,7 @@ function TreeNode({ node, selectedPath, onSelect, depth }: TreeNodeProps) {
                 selectedPath={selectedPath}
                 onSelect={onSelect}
                 depth={depth + 1}
+                hideNodeModules={hideNodeModules}
               />
             ))}
         </div>
@@ -136,7 +154,7 @@ function buildTreeFromFiles(
   if (files.length === 0) return null;
 
   const root: FileTreeNode = {
-    name: "root",
+    name: "files",
     path: "/",
     type: "directory",
     children: [],

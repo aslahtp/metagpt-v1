@@ -200,17 +200,22 @@ export async function getFileContent(
 
 export async function sendChatMessage(
   projectId: string,
-  message: string
+  message: string,
+  model?: string | null
 ): Promise<{
   message: ChatMessage;
   agents_executed: string[];
   files_modified: string[];
   project_updated: boolean;
 }> {
+  const body: Record<string, unknown> = { message };
+  if (model) {
+    body.model = model;
+  }
   const res = await fetch(`${API_BASE}/api/v1/chat/${projectId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error("Failed to send message");
   return res.json();

@@ -1,8 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import { Sparkles, Code, Monitor, Download } from "lucide-react";
+import Link from "next/link";
+import {
+  Code,
+  Monitor,
+  Download,
+  Settings,
+  Check,
+  Palette,
+  FolderX,
+  ChevronRight,
+  ChevronLeft,
+  RefreshCw,
+} from "lucide-react";
 import {
   getProject,
   runPipeline,
@@ -11,6 +23,7 @@ import {
   downloadProjectZip,
 } from "@/lib/api";
 import { useProjectStore } from "@/lib/store";
+import { EDITOR_THEMES } from "@/lib/editorThemes";
 import { ExecutionTimeline } from "@/components/ExecutionTimeline";
 import { FileExplorer } from "@/components/FileExplorer";
 import { CodeViewer } from "@/components/CodeViewer";
@@ -35,14 +48,42 @@ export default function ProjectPage() {
     setFileContent,
     setFileLanguage,
     setGeneratedFiles,
+    reset,
   } = useProjectStore();
 
-  const [rightPanelTab, setRightPanelTab] = useState<"timeline" | "outputs">(
+  const { editorTheme, setEditorTheme, hideNodeModules, setHideNodeModules } =
+    useProjectStore();
+
+  const [rightPanelTab, setRightPanelTab] = useState<
+    "timeline" | "outputs" | "chat"
+  >(
     "timeline"
   );
   const [centerView, setCenterView] = useState<"code" | "preview">("code");
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [refreshingFiles, setRefreshingFiles] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsView, setSettingsView] = useState<"main" | "themes">("main");
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Close settings dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target as Node)
+      ) {
+        setSettingsOpen(false);
+        setSettingsView("main");
+      }
+    }
+    if (settingsOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [settingsOpen]);
 
   // Fetch project data
   const fetchProject = useCallback(async () => {
@@ -160,6 +201,20 @@ export default function ProjectPage() {
     }
   };
 
+  // Refresh file tree
+  const handleRefreshFiles = async () => {
+    if (refreshingFiles) return;
+    setRefreshingFiles(true);
+    try {
+      const tree = await getFileTree(projectId);
+      setFileTree(tree.root);
+    } catch {
+      // Silently fail — tree may not exist yet
+    } finally {
+      setRefreshingFiles(false);
+    }
+  };
+
   // Download project as zip
   const handleDownloadZip = async () => {
     if (downloading) return;
@@ -172,6 +227,11 @@ export default function ProjectPage() {
       setDownloading(false);
     }
   };
+
+  // Reset store when navigating to a new project
+  useEffect(() => {
+    reset();
+  }, [projectId]);
 
   // Initial load
   useEffect(() => {
@@ -200,10 +260,9 @@ export default function ProjectPage() {
     <div className="h-screen flex flex-col">
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center px-4 gap-4 shrink-0">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity duration-200">
           <span className="font-medium">MetaGPT</span>
-        </div>
+        </Link>
         <div className="h-4 w-px bg-border" />
         <div className="flex-1 min-w-0" title={project.prompt}>
           <h1 className="text-sm font-medium truncate">
@@ -232,21 +291,172 @@ export default function ProjectPage() {
         <div className="w-64 border-r border-border flex flex-col shrink-0">
           <div className="p-3 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-medium">Files</h2>
-            {project.state.pipeline_status?.stage === "completed" && (
+            <div className="flex items-center gap-1">
+              {/* Refresh file tree */}
               <button
-                onClick={handleDownloadZip}
-                disabled={downloading}
-                title="Download as ZIP"
-                className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium text-foreground-muted hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleRefreshFiles}
+                disabled={refreshingFiles}
+                title="Refresh file list"
+                className="p-1.5 rounded text-foreground-muted hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {downloading ? (
-                  <div className="h-3.5 w-3.5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-                ) : (
-                  <Download className="h-3.5 w-3.5" />
-                )}
-                <span>{downloading ? "Zipping..." : "ZIP"}</span>
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${refreshingFiles ? "animate-spin" : ""}`}
+                />
               </button>
-            )}
+
+              {project.state.pipeline_status?.stage === "completed" && (
+                <button
+                  onClick={handleDownloadZip}
+                  disabled={downloading}
+                  title="Download as ZIP"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium text-foreground-muted hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {downloading ? (
+                    <div className="h-3.5 w-3.5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  <span>{downloading ? "Zipping..." : "ZIP"}</span>
+                </button>
+              )}
+
+              {/* Settings Button */}
+              <div className="relative" ref={settingsRef}>
+                <button
+                  onClick={() => {
+                    setSettingsOpen(!settingsOpen);
+                    if (settingsOpen) setSettingsView("main");
+                  }}
+                  className={`p-1.5 rounded transition-colors ${
+                    settingsOpen
+                      ? "bg-accent/10 text-accent"
+                      : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+                  }`}
+                  title="Settings"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </button>
+
+                {/* Settings Dropdown */}
+                {settingsOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-60 z-50 rounded-xl border border-border bg-background-secondary shadow-2xl shadow-black/40 overflow-hidden animate-in">
+                    {settingsView === "main" ? (
+                      /* ── Main Settings View ── */
+                      <div className="px-1.5 py-1.5 space-y-0.5">
+                        {/* Hide node_modules */}
+                        <button
+                          onClick={() => setHideNodeModules(!hideNodeModules)}
+                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-lg text-left transition-all duration-150 hover:bg-background-tertiary group"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <FolderX className="h-3.5 w-3.5 text-foreground-subtle group-hover:text-foreground-muted shrink-0" />
+                            <span className="text-xs font-medium text-foreground-muted group-hover:text-foreground">
+                              Hide node_modules
+                            </span>
+                          </div>
+                          <div
+                            className={`relative w-8 h-[18px] rounded-full transition-colors duration-200 shrink-0 ${
+                              hideNodeModules
+                                ? "bg-accent"
+                                : "bg-foreground-subtle/30"
+                            }`}
+                          >
+                            <div
+                              className={`absolute top-[2px] h-[14px] w-[14px] rounded-full shadow-sm transition-all duration-200 border ${
+                                hideNodeModules
+                                  ? "translate-x-[16px] bg-background-secondary border-white/20"
+                                  : "translate-x-[2px] bg-background-secondary border-foreground-subtle/30"
+                              }`}
+                            />
+                          </div>
+                        </button>
+
+                        {/* Editor Theme → opens sub-panel */}
+                        <button
+                          onClick={() => setSettingsView("themes")}
+                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-lg text-left transition-all duration-150 hover:bg-background-tertiary group"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Palette className="h-3.5 w-3.5 text-foreground-subtle group-hover:text-foreground-muted shrink-0" />
+                            <span className="text-xs font-medium text-foreground-muted group-hover:text-foreground">
+                              Editor Theme
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-foreground-subtle truncate max-w-[72px]">
+                              {EDITOR_THEMES.find((t) => t.id === editorTheme)?.label ?? "Default"}
+                            </span>
+                            <ChevronRight className="h-3.5 w-3.5 text-foreground-subtle shrink-0" />
+                          </div>
+                        </button>
+                      </div>
+                    ) : (
+                      /* ── Theme Picker Sub-panel ── */
+                      <div>
+                        {/* Back header */}
+                        <button
+                          onClick={() => setSettingsView("main")}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 border-b border-border text-left hover:bg-background-tertiary transition-colors"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5 text-foreground-subtle" />
+                          <span className="text-xs font-medium text-foreground-muted">
+                            Editor Theme
+                          </span>
+                        </button>
+
+                        {/* Theme list */}
+                        <div className="px-1.5 py-1.5 max-h-72 overflow-y-auto space-y-0.5">
+                          {EDITOR_THEMES.map((theme) => (
+                            <button
+                              key={theme.id}
+                              onClick={() => setEditorTheme(theme.id)}
+                              className={`w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-left transition-all duration-150 group ${
+                                editorTheme === theme.id
+                                  ? "bg-accent/10"
+                                  : "hover:bg-background-tertiary"
+                              }`}
+                            >
+                              {/* Color Swatch */}
+                              <div
+                                className="w-5 h-5 rounded-md shrink-0 border border-white/10 flex items-center justify-center overflow-hidden"
+                                style={{ backgroundColor: theme.swatch[0] }}
+                              >
+                                <div className="flex flex-col items-center gap-px">
+                                  <div
+                                    className="w-2.5 h-[2px] rounded-full"
+                                    style={{ backgroundColor: theme.swatch[2] }}
+                                  />
+                                  <div
+                                    className="w-2 h-[2px] rounded-full opacity-60"
+                                    style={{ backgroundColor: theme.swatch[1] }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Label */}
+                              <span
+                                className={`text-xs font-medium flex-1 ${
+                                  editorTheme === theme.id
+                                    ? "text-accent"
+                                    : "text-foreground-muted group-hover:text-foreground"
+                                }`}
+                              >
+                                {theme.label}
+                              </span>
+
+                              {/* Check Mark */}
+                              {editorTheme === theme.id && (
+                                <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <div className="flex-1 overflow-auto">
             <FileExplorer onSelectFile={handleSelectFile} />
@@ -289,12 +499,22 @@ export default function ProjectPage() {
           )}
 
           {/* Center Content */}
-          <div className="flex-1 overflow-auto">
-            <div className={centerView === "code" ? "h-full block" : "hidden"}>
+          <div className="flex-1 flex flex-col min-h-0 min-w-0">
+            <div
+              className={
+                centerView === "code"
+                  ? "flex-1 min-h-0 min-w-0 flex"
+                  : "hidden"
+              }
+            >
               <CodeViewer />
             </div>
             <div
-              className={centerView === "preview" ? "h-full block" : "hidden"}
+              className={
+                centerView === "preview"
+                  ? "flex-1 min-h-0 min-w-0 flex"
+                  : "hidden"
+              }
             >
               <PreviewFrame projectId={projectId} />
             </div>
@@ -307,7 +527,7 @@ export default function ProjectPage() {
           <div className="flex border-b border-border shrink-0">
             <button
               onClick={() => setRightPanelTab("timeline")}
-              className={`flex-1 px-4 py-2 text-sm font-medium ${
+              className={`flex-1 px-3 py-2 text-sm font-medium ${
                 rightPanelTab === "timeline"
                   ? "text-accent border-b-2 border-accent"
                   : "text-foreground-muted hover:text-foreground"
@@ -317,7 +537,7 @@ export default function ProjectPage() {
             </button>
             <button
               onClick={() => setRightPanelTab("outputs")}
-              className={`flex-1 px-4 py-2 text-sm font-medium ${
+              className={`flex-1 px-3 py-2 text-sm font-medium ${
                 rightPanelTab === "outputs"
                   ? "text-accent border-b-2 border-accent"
                   : "text-foreground-muted hover:text-foreground"
@@ -325,18 +545,28 @@ export default function ProjectPage() {
             >
               Outputs
             </button>
+            <button
+              onClick={() => setRightPanelTab("chat")}
+              className={`flex-1 px-3 py-2 text-sm font-medium ${
+                rightPanelTab === "chat"
+                  ? "text-accent border-b-2 border-accent"
+                  : "text-foreground-muted hover:text-foreground"
+              }`}
+            >
+              Chat
+            </button>
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 min-h-0 overflow-auto flex flex-col">
             {rightPanelTab === "timeline" && <ExecutionTimeline />}
             {rightPanelTab === "outputs" && <AgentOutputs />}
+            {rightPanelTab === "chat" && (
+              <ChatPanel projectId={projectId} embedded />
+            )}
           </div>
         </div>
       </div>
-
-      {/* Bottom Panel - Chat */}
-      <ChatPanel projectId={projectId} />
 
       {/* Error Toast */}
       {error && (

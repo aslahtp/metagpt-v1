@@ -104,6 +104,10 @@ class ChatRequest(BaseModel):
     context: dict[str, Any] = Field(
         default_factory=dict, description="Additional context"
     )
+    model: str | None = Field(
+        default=None,
+        description="LLM model override (e.g. 'gemini-2.0-flash', 'gemini-2.5-pro'). None means auto.",
+    )
 
 
 class ChatResponse(BaseModel):

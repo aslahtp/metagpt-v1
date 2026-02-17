@@ -12,8 +12,6 @@ import {
 import { useProjectStore } from "@/lib/store";
 import {
   cn,
-  getAgentColor,
-  getAgentBgColor,
   getPriorityColor,
   getSeverityColor,
 } from "@/lib/utils";
@@ -323,15 +321,10 @@ function AgentSection({
   children,
 }: AgentSectionProps) {
   return (
-    <div
-      className={cn(
-        "rounded-lg border border-border overflow-hidden",
-        getAgentBgColor(id)
-      )}
-    >
+    <div className="rounded-lg border border-border overflow-hidden bg-background-secondary">
       <button
         onClick={onToggle}
-        className="w-full px-3 py-2 flex items-center justify-between hover:bg-background-tertiary/50 transition-colors"
+        className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-background-tertiary/50 transition-colors"
       >
         <div className="flex items-center gap-2">
           {isExpanded ? (
@@ -339,8 +332,8 @@ function AgentSection({
           ) : (
             <ChevronRight className="h-4 w-4 text-foreground-muted" />
           )}
-          <span className={cn("font-medium text-sm", getAgentColor(id))}>
-            {name} Agent
+          <span className="font-medium text-sm text-foreground">
+            {name}
           </span>
         </div>
         {hasOutput ? (
@@ -349,7 +342,7 @@ function AgentSection({
           <span className="text-xs text-foreground-subtle">Pending</span>
         )}
       </button>
-      {isExpanded && hasOutput && <div className="px-3 pb-3">{children}</div>}
+      {isExpanded && hasOutput && <div className="px-4 py-4 border-t border-border">{children}</div>}
     </div>
   );
 }
