@@ -61,6 +61,14 @@ interface ProjectStore {
   previewInitialized: boolean;
   setPreviewInitialized: (initialized: boolean) => void;
 
+  // Sandbox (E2B)
+  sandboxUrl: string | null;
+  setSandboxUrl: (url: string | null) => void;
+  sandboxId: string | null;
+  setSandboxId: (id: string | null) => void;
+  sandboxLoading: boolean;
+  setSandboxLoading: (loading: boolean) => void;
+
   // Editor theme
   editorTheme: string;
   setEditorTheme: (theme: string) => void;
@@ -134,6 +142,14 @@ export const useProjectStore = create<ProjectStore>((set) => ({
   setPreviewInitialized: (initialized) =>
     set({ previewInitialized: initialized }),
 
+  // Sandbox (E2B)
+  sandboxUrl: null,
+  setSandboxUrl: (url) => set({ sandboxUrl: url }),
+  sandboxId: null,
+  setSandboxId: (id) => set({ sandboxId: id }),
+  sandboxLoading: false,
+  setSandboxLoading: (loading) => set({ sandboxLoading: loading }),
+
   // Editor theme (persisted to localStorage)
   editorTheme: getStoredTheme(),
   setEditorTheme: (theme) => {
@@ -163,5 +179,8 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       expandedAgents: new Set(["manager", "architect", "engineer", "qa"]),
       previewEnabled: false,
       previewInitialized: false,
+      sandboxUrl: null,
+      sandboxId: null,
+      sandboxLoading: false,
     }),
 }));

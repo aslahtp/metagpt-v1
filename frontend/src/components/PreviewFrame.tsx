@@ -2,15 +2,18 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useProjectStore } from "@/lib/store";
+import { createSandbox, killSandbox } from "@/lib/api";
 import {
   ExternalLink,
   RefreshCw,
   Play,
-  Terminal,
+  Cloud,
   Monitor,
   Tablet,
   Smartphone,
   Maximize,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 
 interface PreviewFrameProps {
@@ -44,8 +47,18 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const [previewUrl, setPreviewUrl] = useState("http://localhost:5173");
   const [iframeKey, setIframeKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [sandboxError, setSandboxError] = useState<string | null>(null);
   const [device, setDevice] = useState<DevicePreset>("responsive");
-  const { previewInitialized, setPreviewInitialized } = useProjectStore();
+  const {
+    previewInitialized,
+    setPreviewInitialized,
+    sandboxUrl,
+    setSandboxUrl,
+    sandboxId,
+    setSandboxId,
+    sandboxLoading,
+    setSandboxLoading,
+  } = useProjectStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -82,6 +95,16 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
+
+  // Cleanup sandbox on unmount
+  useEffect(() => {
+    return () => {
+      if (sandboxId) {
+        killSandbox(projectId).catch(() => {});
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sandboxId]);
 
   // Calculate iframe dimensions and scale
   const getIframeStyle = useCallback((): React.CSSProperties => {
@@ -161,10 +184,49 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     window.open(previewUrl, "_blank");
   };
 
-  const handleStartPreview = () => {
+  // Load preview using manual URL (localhost)
+  const handleLoadManual = () => {
+    setSandboxError(null);
     setPreviewInitialized(true);
     setIsLoading(true);
     setIframeKey((k) => k + 1);
+  };
+
+  // Launch cloud preview via E2B sandbox
+  const handleLaunchSandbox = async () => {
+    setSandboxError(null);
+    setSandboxLoading(true);
+    setIsLoading(true);
+
+    try {
+      const info = await createSandbox(projectId);
+      if (info.preview_url) {
+        setSandboxUrl(info.preview_url);
+        setSandboxId(info.sandbox_id);
+        setPreviewUrl(info.preview_url);
+        setPreviewInitialized(true);
+        setIframeKey((k) => k + 1);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to create sandbox";
+      setSandboxError(msg);
+      setIsLoading(false);
+    } finally {
+      setSandboxLoading(false);
+    }
+  };
+
+  // Kill sandbox
+  const handleKillSandbox = async () => {
+    try {
+      await killSandbox(projectId);
+    } catch {
+      // ignore
+    }
+    setSandboxUrl(null);
+    setSandboxId(null);
+    setPreviewInitialized(false);
+    setIsLoading(false);
   };
 
   return (
@@ -179,7 +241,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
           className="flex-1 px-2 py-1 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-accent font-mono"
         />
         <button
-          onClick={handleStartPreview}
+          onClick={handleLoadManual}
           className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-white text-black hover:bg-gray-200 transition-colors"
         >
           <Play className="h-3 w-3" />
@@ -242,6 +304,16 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
         >
           <ExternalLink className="h-4 w-4 text-foreground-muted" />
         </button>
+        {sandboxId && (
+          <button
+            onClick={handleKillSandbox}
+            className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+            title="Stop cloud sandbox"
+          >
+            <XCircle className="h-3 w-3" />
+            Stop
+          </button>
+        )}
       </div>
 
       {/* Preview Area */}
@@ -250,44 +322,80 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
           <div className="absolute inset-0 flex items-center justify-center bg-background-tertiary">
             <div className="max-w-md text-center p-8">
               <div className="w-16 h-16 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
-                <Terminal className="h-8 w-8 text-accent" />
+                <Cloud className="h-8 w-8 text-accent" />
               </div>
-              <h3 className="text-lg font-medium mb-2">Start the Dev Server</h3>
+              <h3 className="text-lg font-medium mb-2">Preview Project</h3>
               <p className="text-sm text-foreground-muted mb-6">
-                Run the generated project to see the live preview:
+                Launch a cloud sandbox to preview the generated project, or load a
+                local dev server URL.
               </p>
-              <div className="text-left bg-background-secondary p-4 rounded-lg space-y-2 font-mono text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-foreground-subtle">$</span>
-                  <code className="text-accent">
-                    cd backend/projects/{projectId}/files
-                  </code>
+
+              {/* Sandbox error */}
+              {sandboxError && (
+                <div className="flex items-start gap-2 text-left bg-red-500/10 border border-red-500/20 p-3 rounded-lg mb-4">
+                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-400">{sandboxError}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-foreground-subtle">$</span>
-                  <code className="text-accent">npm install</code>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-foreground-subtle">$</span>
-                  <code className="text-accent">npm run dev</code>
-                </div>
-              </div>
-              <p className="text-xs text-foreground-subtle mt-4 mb-4">
-                Once the dev server is running, click Load to preview
-              </p>
-              <button onClick={handleStartPreview} className="btn-primary">
-                Load Preview
+              )}
+
+              {/* Cloud preview button */}
+              <button
+                onClick={handleLaunchSandbox}
+                disabled={sandboxLoading}
+                className="btn-primary w-full flex items-center justify-center gap-2 mb-3"
+              >
+                {sandboxLoading ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Creating sandbox...
+                  </>
+                ) : (
+                  <>
+                    <Cloud className="h-4 w-4" />
+                    Launch Cloud Preview
+                  </>
+                )}
               </button>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-foreground-subtle">or</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Local preview option */}
+              <button
+                onClick={handleLoadManual}
+                className="btn-ghost w-full text-sm flex items-center justify-center gap-2"
+              >
+                <Play className="h-4 w-4" />
+                Load from localhost
+              </button>
+
+              <p className="text-xs text-foreground-subtle mt-4">
+                Cloud preview powered by{" "}
+                <a
+                  href="https://e2b.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  E2B
+                </a>
+              </p>
             </div>
           </div>
         ) : (
           <>
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-background-tertiary/80 z-10">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col items-center gap-3">
                   <div className="h-5 w-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
                   <span className="text-foreground-muted">
-                    Loading preview...
+                    {sandboxLoading
+                      ? "Setting up sandbox (this may take a minute)..."
+                      : "Loading preview..."}
                   </span>
                 </div>
               </div>

@@ -350,3 +350,39 @@ export async function streamPipeline(
     onError(err instanceof Error ? err : new Error("Stream connection error"));
   }
 }
+
+// ── Sandbox (E2B Preview) ──
+
+export interface SandboxInfo {
+  sandbox_id: string | null;
+  preview_url: string | null;
+  alive?: boolean;
+}
+
+export async function createSandbox(projectId: string): Promise<SandboxInfo> {
+  const res = await authFetch(`${API_BASE}/api/v1/sandbox/${projectId}/create`, {
+    method: "POST",
+  });
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || "Failed to create sandbox");
+  }
+  return res.json();
+}
+
+export async function getSandboxStatus(projectId: string): Promise<SandboxInfo> {
+  const res = await authFetch(`${API_BASE}/api/v1/sandbox/${projectId}/status`);
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
+  if (!res.ok) throw new Error("Failed to get sandbox status");
+  return res.json();
+}
+
+export async function killSandbox(projectId: string): Promise<{ killed: boolean }> {
+  const res = await authFetch(`${API_BASE}/api/v1/sandbox/${projectId}/kill`, {
+    method: "POST",
+  });
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
+  if (!res.ok) throw new Error("Failed to kill sandbox");
+  return res.json();
+}

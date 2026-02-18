@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     agent_max_retries: int = 3
     agent_retry_delay: float = 1.0
 
+    # E2B Sandbox
+    e2b_api_key: str = ""
+    e2b_sandbox_timeout: int = 300  # seconds (5 minutes default)
+
 
 @lru_cache
 def get_settings() -> Settings:
