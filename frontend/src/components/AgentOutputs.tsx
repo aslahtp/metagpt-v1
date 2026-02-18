@@ -388,9 +388,9 @@ function ExpandableList<T>({
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between text-xs">
-      <span className="text-foreground-muted">{label}</span>
-      <span className="font-medium">{value}</span>
+    <div className="flex justify-between text-xs gap-4">
+      <span className="text-foreground-muted shrink-0">{label}</span>
+      <span className="font-medium text-right">{value}</span>
     </div>
   );
 }
