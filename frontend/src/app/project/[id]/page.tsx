@@ -76,6 +76,8 @@ export default function ProjectPage() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [refreshingFiles, setRefreshingFiles] = useState(false);
+  const [showFileExplorer, setShowFileExplorer] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsView, setSettingsView] = useState<"main" | "themes">("main");
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -292,6 +294,31 @@ export default function ProjectPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center">
+            <button
+              onClick={() => setShowFileExplorer(!showFileExplorer)}
+              className={`flex items-center p-0.5 rounded transition-colors ${
+                showFileExplorer
+                  ? "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+                  : "text-accent bg-accent/10"
+              }`}
+              title={showFileExplorer ? "Hide file explorer" : "Show file explorer"}
+            >
+              <span className="material-symbols-outlined leading-none" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>dock_to_right</span>
+            </button>
+            <button
+              onClick={() => setShowRightPanel(!showRightPanel)}
+              className={`flex items-center p-0.5 rounded transition-colors ${
+                showRightPanel
+                  ? "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+                  : "text-accent bg-accent/10"
+              }`}
+              title={showRightPanel ? "Hide right panel" : "Show right panel"}
+            >
+              <span className="material-symbols-outlined leading-none" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>dock_to_left</span>
+            </button>
+          </div>
+          <div className="h-4 w-px bg-border" />
           {pipelineRunning && (
             <div className="flex items-center gap-2 text-sm text-foreground-muted">
               <div className="h-4 w-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
@@ -307,6 +334,7 @@ export default function ProjectPage() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - File Explorer */}
+        {showFileExplorer && (
         <div className="w-64 border-r border-border flex flex-col shrink-0">
           <div className="p-3 border-b border-border flex items-center justify-between">
             <h2 className="text-sm font-medium">Files</h2>
@@ -481,6 +509,7 @@ export default function ProjectPage() {
             <FileExplorer onSelectFile={handleSelectFile} />
           </div>
         </div>
+        )}
 
         {/* Center Panel - Code Viewer / Preview */}
         <div className="flex-1 flex flex-col min-w-0">
@@ -541,6 +570,7 @@ export default function ProjectPage() {
         </div>
 
         {/* Right Panel - Timeline/Outputs */}
+        {showRightPanel && (
         <div className="w-80 border-l border-border flex flex-col shrink-0">
           {/* Tabs */}
           <div className="flex border-b border-border shrink-0">
@@ -585,6 +615,7 @@ export default function ProjectPage() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Error Toast */}
