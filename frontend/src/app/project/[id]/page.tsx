@@ -14,7 +14,10 @@ import {
   ChevronRight,
   ChevronLeft,
   RefreshCw,
+  PanelLeft,
+  PanelRight,
 } from "lucide-react";
+import { MaterialIconWithFallback } from "@/components/MaterialIconWithFallback";
 import {
   getProject,
   runPipeline,
@@ -322,7 +325,11 @@ export default function ProjectPage() {
               }`}
               title={showFileExplorer ? "Hide file explorer" : "Show file explorer"}
             >
-              <span className="material-symbols-outlined leading-none" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>dock_to_right</span>
+              <MaterialIconWithFallback
+                name="dock_to_right"
+                fallback={PanelLeft}
+                fillFallback={true}
+              />
             </button>
             <button
               onClick={() => setShowRightPanel(!showRightPanel)}
@@ -333,7 +340,11 @@ export default function ProjectPage() {
               }`}
               title={showRightPanel ? "Hide right panel" : "Show right panel"}
             >
-              <span className="material-symbols-outlined leading-none" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>dock_to_left</span>
+              <MaterialIconWithFallback
+                name="dock_to_left"
+                fallback={PanelRight}
+                fillFallback={true}
+              />
             </button>
           </div>
           <div className="h-4 w-px bg-border" />
