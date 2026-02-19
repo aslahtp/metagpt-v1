@@ -19,9 +19,11 @@ interface ChatPanelProps {
   projectId: string;
   /** When true, render as sidebar (no toggle bar, fills parent height) */
   embedded?: boolean;
+  /** Called after chat edits modify/create files — parent can refresh file tree */
+  onFilesModified?: (files: string[]) => void;
 }
 
-export function ChatPanel({ projectId, embedded = false }: ChatPanelProps) {
+export function ChatPanel({ projectId, embedded = false, onFilesModified }: ChatPanelProps) {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -134,9 +136,9 @@ export function ChatPanel({ projectId, embedded = false }: ChatPanelProps) {
         files_referenced: response.files_referenced,
       });
 
-      // Refresh project if updated
-      if (response.project_updated) {
-        // The store will be updated by the parent component
+      // Notify parent to refresh file tree + code viewer
+      if (response.project_updated && response.files_modified.length > 0) {
+        onFilesModified?.(response.files_modified);
       }
     } catch (error) {
       addChatMessage({

@@ -89,6 +89,7 @@ class ChatService:
             timeout=300,  # 5 min — chat prompts are large
             temperature=0.3,
             convert_system_message_to_human=True,
+            model_kwargs={"response_mime_type": "application/json"},
         )
 
     async def process_message(
@@ -267,18 +268,14 @@ class ChatService:
             else:
                 content = raw.strip()
 
-            # Strip markdown fences if present
-            if content.startswith("```"):
-                content = re.sub(r"^```(?:json)?\s*\n?", "", content)
-                content = re.sub(r"\n?```\s*$", "", content)
+            # Try multiple strategies to extract JSON from the response
+            result = self._extract_json(content)
+            if result is not None:
+                files_count = len(result.get("files", []))
+                logger.info(f"LLM returned {files_count} files to update")
+                return result
 
-            result = json.loads(content)
-            files_count = len(result.get("files", []))
-            logger.info(f"LLM returned {files_count} files to update")
-            return result
-
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse LLM JSON response: {e}")
+            logger.error(f"Failed to extract JSON from LLM response")
             logger.error(f"Raw response: {content[:500]}")
             return {
                 "summary": "Failed to parse the response. Please try again.",
@@ -287,6 +284,42 @@ class ChatService:
         except Exception as e:
             logger.error(f"LLM call failed: {e}", exc_info=True)
             return {"summary": f"Error: {str(e)}", "files": []}
+
+    def _extract_json(self, text: str) -> dict[str, Any] | None:
+        """
+        Extracts a JSON object from a string, handling cases where the string
+        might contain prose before/after the JSON, or markdown code fences.
+        """
+        # Strategy 1: Look for JSON within markdown code fences
+        match = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                pass
+
+        # Strategy 2: Look for a raw JSON object (starting with { and ending with })
+        # This is more aggressive and might pick up partial JSON if not careful.
+        # We'll try to find the first '{' and the last '}'
+        first_brace = text.find('{')
+        last_brace = text.rfind('}')
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            json_candidate = text[first_brace : last_brace + 1]
+            try:
+                return json.loads(json_candidate)
+            except json.JSONDecodeError:
+                pass
+
+        # Strategy 3: Try to parse the whole text directly (after stripping markdown fences)
+        # This covers cases where the LLM just returns raw JSON without prose.
+        cleaned_text = re.sub(r"^```(?:json)?\s*\n?", "", text)
+        cleaned_text = re.sub(r"\n?```\s*$", "", cleaned_text)
+        try:
+            return json.loads(cleaned_text)
+        except json.JSONDecodeError:
+            pass
+
+        return None
 
     async def _update_project_state(
         self,

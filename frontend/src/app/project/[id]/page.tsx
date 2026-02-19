@@ -236,6 +236,24 @@ export default function ProjectPage() {
     }
   };
 
+  // Called by ChatPanel after files are modified/created via chat
+  const handleChatFilesModified = async (files: string[]) => {
+    // Refresh file tree so new files appear in the explorer
+    try {
+      const tree = await getFileTree(projectId);
+      setFileTree(tree.root);
+    } catch {}
+
+    // If the currently open file was modified, re-fetch its content
+    if (selectedFile && files.includes(selectedFile)) {
+      try {
+        const file = await getFileContent(projectId, selectedFile);
+        setFileContent(file.content);
+        setFileLanguage(file.language);
+      } catch {}
+    }
+  };
+
   // Download project as zip
   const handleDownloadZip = async () => {
     if (downloading) return;
@@ -611,7 +629,7 @@ export default function ProjectPage() {
             {rightPanelTab === "timeline" && <ExecutionTimeline />}
             {rightPanelTab === "outputs" && <AgentOutputs />}
             {rightPanelTab === "chat" && (
-              <ChatPanel projectId={projectId} embedded />
+              <ChatPanel projectId={projectId} embedded onFilesModified={handleChatFilesModified} />
             )}
           </div>
         </div>
