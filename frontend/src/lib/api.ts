@@ -172,6 +172,7 @@ export interface ChatMessage {
   agent_triggered?: string;
   files_modified: string[];
   files_referenced?: string[];
+  indexing_status?: string;
 }
 
 // ── API Functions ──
@@ -237,6 +238,7 @@ export async function sendChatMessage(
   files_modified: string[];
   files_referenced: string[];
   project_updated: boolean;
+  indexing_status?: string;
 }> {
   const body: Record<string, unknown> = { message };
   if (model) {
@@ -351,6 +353,24 @@ export async function streamPipeline(
   } catch (err) {
     onError(err instanceof Error ? err : new Error("Stream connection error"));
   }
+}
+
+
+export async function indexProjectFiles(
+  projectId: string,
+  files?: string[],
+): Promise<{ status: string; files_indexed?: number; stats?: any }> {
+  const response = await authFetch(`${API_BASE}/api/v1/projects/${projectId}/index`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(files ? { files } : {}),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to index files");
+  }
+
+  return response.json();
 }
 
 // ── Sandbox (E2B Preview) ──

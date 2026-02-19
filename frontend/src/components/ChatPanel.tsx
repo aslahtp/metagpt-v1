@@ -10,8 +10,9 @@ import {
   Zap,
   Check,
   FileCode,
+  Database,
 } from "lucide-react";
-import { sendChatMessage } from "@/lib/api";
+import { sendChatMessage, indexProjectFiles } from "@/lib/api";
 import { useProjectStore } from "@/lib/store";
 import { cn, formatDate, getAgentColor } from "@/lib/utils";
 
@@ -25,7 +26,15 @@ interface ChatPanelProps {
 
 export function ChatPanel({ projectId, embedded = false, onFilesModified }: ChatPanelProps) {
   const [message, setMessage] = useState("");
-  const { chatLoading: isLoading, setChatLoading: setIsLoading } = useProjectStore();
+  const {
+    chatMessages,
+    addChatMessage,
+    chatLoading: isLoading,
+    setChatLoading: setIsLoading,
+    updateChatMessage,
+    project,
+    setProject,
+  } = useProjectStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [autoMode, setAutoMode] = useState(true);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
@@ -79,8 +88,7 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
     return found ? found.label : "Auto";
   };
 
-  const { chatMessages, addChatMessage, project, setProject } =
-    useProjectStore();
+
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -134,7 +142,24 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
       addChatMessage({
         ...response.message,
         files_referenced: response.files_referenced,
+        indexing_status: response.indexing_status,
       });
+
+      // If indexing is pending, trigger it live
+      if (response.indexing_status === "pending") {
+        // Optimistically update message to show indexing spinner
+        const indexingMsgId = response.message.id;
+        updateChatMessage(indexingMsgId, { indexing_status: "indexing" });
+
+        // Trigger indexing in background
+        indexProjectFiles(projectId, response.files_modified)
+          .then(() => {
+            updateChatMessage(indexingMsgId, { indexing_status: "completed" });
+          })
+          .catch(() => {
+            updateChatMessage(indexingMsgId, { indexing_status: "failed" });
+          });
+      }
 
       // Notify parent to refresh file tree + code viewer
       if (response.project_updated && response.files_modified.length > 0) {
@@ -258,6 +283,24 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
                             </span>
                           </div>
                         )}
+                      {msg.role === "assistant" && msg.indexing_status === "indexing" && (
+                        <div className="mt-1.5 flex items-center gap-1 text-xs text-foreground-muted animate-pulse">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <span>Indexing codebase...</span>
+                        </div>
+                      )}
+                      {msg.role === "assistant" && msg.indexing_status === "completed" && (
+                        <div className="mt-1.5 flex items-center gap-1 text-xs text-success/80">
+                          <Check className="h-3 w-3" />
+                          <span>Re-indexed codebase</span>
+                        </div>
+                      )}
+                      {msg.role === "assistant" && msg.indexing_status === "failed" && (
+                        <div className="mt-1.5 flex items-center gap-1 text-xs text-destructive/80">
+                          <Database className="h-3 w-3" />
+                          <span>Indexing failed</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

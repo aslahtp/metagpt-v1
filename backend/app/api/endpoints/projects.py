@@ -2,7 +2,10 @@
 
 from typing import Any
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from app.auth import get_current_user
 from app.models.user import User
@@ -206,3 +209,48 @@ async def get_preview_metadata(
         "project_id": project_id,
         "preview": project.preview.model_dump() if project.preview else None,
     }
+
+
+@router.post("/{project_id}/index")
+async def index_project_files(
+    project_id: str,
+    request: dict[str, list[str]] | None = None,  # Accept raw dict or use Pydantic
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """
+    Trigger re-indexing for specific files or the entire project.
+    """
+    # Extract files from body if present
+    files = request.get("files") if request else None
+
+    service = PipelineService()
+    project = await service.get_project(project_id)
+
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+
+    if project.user_id != str(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this project",
+        )
+
+    # Lazy import to avoid circular dependencies if any
+    from app.rag.indexer import CodebaseIndexer
+    indexer = CodebaseIndexer()
+
+    try:
+        if files:
+            await indexer.reindex_files(project_id, files)
+            return {"status": "completed", "files_indexed": len(files)}
+        else:
+            stats = await indexer.index_project(project_id)
+            return {"status": "completed", "stats": stats}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Indexing failed: {str(e)}",
+        )

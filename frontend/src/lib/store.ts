@@ -50,6 +50,7 @@ interface ProjectStore {
   clearChatMessages: () => void;
   chatLoading: boolean;
   setChatLoading: (loading: boolean) => void;
+  updateChatMessage: (id: string, updates: Partial<ChatMessage>) => void;
 
   // Agent outputs visibility
   expandedAgents: Set<string>;
@@ -123,6 +124,12 @@ export const useProjectStore = create<ProjectStore>((set) => ({
   clearChatMessages: () => set({ chatMessages: [] }),
   chatLoading: false,
   setChatLoading: (loading) => set({ chatLoading: loading }),
+  updateChatMessage: (id, updates) =>
+    set((state) => ({
+      chatMessages: state.chatMessages.map((m) =>
+        m.id === id ? { ...m, ...updates } : m
+      ),
+    })),
 
   // Agent outputs
   expandedAgents: new Set(["manager", "architect", "engineer", "qa"]),

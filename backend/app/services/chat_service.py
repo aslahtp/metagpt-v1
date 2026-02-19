@@ -20,6 +20,8 @@ from app.rag.retriever import CodebaseRetriever
 from app.schemas.agents import EngineerOutput, GeneratedFileSpec
 from app.schemas.projects import ChatMessage, ChatRequest, ChatResponse
 from app.storage import FileStore, ProjectStore
+# Avoid circular import by importing inside methods or using TYPE_CHECKING
+# from app.rag.indexer import CodebaseIndexer
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +80,9 @@ class ChatService:
         self.settings = get_settings()
         self._model = model
         self.llm = self._create_llm(model)
+        # We'll import Indexer lazily or at module level if no cycle
+        # from app.rag.indexer import CodebaseIndexer
+        # self.indexer = CodebaseIndexer()
 
     def _create_llm(self, model: str | None = None):
         """Create an LLM instance with a generous timeout for chat."""
@@ -143,6 +148,15 @@ class ChatService:
         # Step 5: Update MongoDB with the modified engineer output
         if files_modified:
             await self._update_project_state(project_id, modified_specs)
+            
+            # Step 5b: Re-index modified files for RAG
+            # For live status, we return "pending" and let the frontend trigger indexing
+            if self.settings.rag_enabled:
+                indexing_status = "pending"
+            else:
+                indexing_status = None
+        else:
+            indexing_status = None
 
         # Step 6: Build response
         summary = llm_result.get("summary", "Changes applied.")
@@ -169,6 +183,7 @@ class ChatService:
             files_modified=files_modified,
             files_referenced=[],
             project_updated=len(files_modified) > 0,
+            indexing_status=indexing_status,
         )
 
     async def _get_file_context(

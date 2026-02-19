@@ -125,4 +125,7 @@ class ChatResponse(BaseModel):
         default_factory=list, description="Files referenced via RAG context"
     )
     project_updated: bool = Field(False, description="Whether project state changed")
+    indexing_status: str | None = Field(
+        None, description="Status of RAG re-indexing (e.g. 'completed', 'failed')"
+    )
 
