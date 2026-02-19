@@ -48,6 +48,8 @@ interface ProjectStore {
   chatMessages: ChatMessage[];
   addChatMessage: (message: ChatMessage) => void;
   clearChatMessages: () => void;
+  chatLoading: boolean;
+  setChatLoading: (loading: boolean) => void;
 
   // Agent outputs visibility
   expandedAgents: Set<string>;
@@ -119,6 +121,8 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       chatMessages: [...state.chatMessages, message],
     })),
   clearChatMessages: () => set({ chatMessages: [] }),
+  chatLoading: false,
+  setChatLoading: (loading) => set({ chatLoading: loading }),
 
   // Agent outputs
   expandedAgents: new Set(["manager", "architect", "engineer", "qa"]),
@@ -176,6 +180,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       fileLanguage: null,
       generatedFiles: [],
       chatMessages: [],
+      chatLoading: false,
       expandedAgents: new Set(["manager", "architect", "engineer", "qa"]),
       previewEnabled: false,
       previewInitialized: false,

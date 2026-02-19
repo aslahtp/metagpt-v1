@@ -25,7 +25,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ projectId, embedded = false, onFilesModified }: ChatPanelProps) {
   const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { chatLoading: isLoading, setChatLoading: setIsLoading } = useProjectStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [autoMode, setAutoMode] = useState(true);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
@@ -200,7 +200,7 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
       {showContent && (
         <div className={cn("flex flex-col", embedded ? "flex-1 min-h-0" : "h-[calc(100%-40px)]")}>
           {/* Messages */}
-          <div className="flex-1 min-h-0 overflow-auto px-4 py-2 space-y-3">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-2 space-y-3">
             {chatMessages.length === 0 ? (
               <div className="text-center text-foreground-muted text-sm py-4">
                 <p>Ask questions or request changes to your project.</p>
@@ -220,13 +220,13 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
                   >
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-lg px-3 py-2",
+                        "max-w-[80%] rounded-lg px-3 py-2 overflow-hidden",
                         msg.role === "user"
                           ? "bg-white text-black"
                           : "bg-background-tertiary",
                       )}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs opacity-60">
                           {formatDate(msg.timestamp)}
@@ -243,7 +243,7 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
                         )}
                       </div>
                       {msg.files_modified.length > 0 && (
-                        <div className="mt-2 text-xs opacity-80">
+                        <div className="mt-2 text-xs opacity-80 break-all">
                           Modified: {msg.files_modified.join(", ")}
                         </div>
                       )}
