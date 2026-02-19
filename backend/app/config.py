@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     e2b_api_key: str = ""
     e2b_sandbox_timeout: int = 300  # seconds (5 minutes default)
 
+    # RAG Configuration
+    rag_enabled: bool = True
+    rag_chunk_size: int = 1500
+    rag_chunk_overlap: int = 200
+    rag_top_k: int = 8
+    rag_embedding_model: str = "models/text-embedding-004"
+
 
 @lru_cache
 def get_settings() -> Settings:

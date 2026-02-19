@@ -1,67 +1,95 @@
 """
 Chat Service - Handles iterative chat-based updates.
 
-This service processes chat messages and determines which agents
-need to be re-executed based on user intent.
+Uses RAG to retrieve relevant code context, then makes a single
+direct LLM call to produce targeted file edits. Does NOT re-run
+the full agent pipeline.
 """
 
+import json
+import logging
+import re
 import uuid
 from datetime import datetime
 from typing import Any
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage
 
-from app.graph import AgentPipeline
-from app.llm import get_llm
-from app.schemas.agents import GeneratedFileSpec
-from app.schemas.projects import ChatMessage, ChatRequest, ChatResponse, Project
+from app.config import get_settings
+from app.rag.retriever import CodebaseRetriever
+from app.schemas.agents import EngineerOutput, GeneratedFileSpec
+from app.schemas.projects import ChatMessage, ChatRequest, ChatResponse
 from app.storage import FileStore, ProjectStore
 
+logger = logging.getLogger(__name__)
 
-# Prompt for intent classification
-INTENT_CLASSIFIER_PROMPT = """You are an intent classifier for a code generation system.
 
-Analyze the user's message and determine which agents need to be re-executed.
-The agents are:
-- manager: Handles requirements changes (new features, scope changes)
-- architect: Handles structural changes (new files, architecture changes)
-- engineer: Handles code changes (bug fixes, code modifications, style changes)
-- qa: Handles test changes (new tests, test modifications)
+CHAT_EDIT_PROMPT = """You are a code-editing assistant. The user wants to make a change to their existing project.
 
-User Message: {message}
+## User Request
+{message}
 
-Current Project Context:
-- Name: {project_name}
-- Description: {project_description}
-- Files: {file_count} files generated
+## Existing Project Files
+Below are the current contents of the project files most relevant to the request.
+{file_context}
 
-Respond with ONLY a JSON object containing:
+## All Project Files
+These are ALL file paths in the project (for awareness):
+{all_file_paths}
+
+## Instructions
+1. Analyze the user's request and determine which files need to change.
+2. Return ONLY the files that need modification, with their COMPLETE updated contents.
+3. Do NOT return files that don't need changes.
+4. Make targeted, minimal edits — preserve existing code structure and style.
+5. If the request involves styling/colors, focus on CSS/style files.
+6. Ensure the modified code is complete and functional — no placeholders.
+
+## Response Format
+Respond with ONLY a JSON object in this exact format:
 {{
-    "agents_to_run": ["engineer"],  // List of agents that need to run, in order
-    "affected_files": ["path/to/file.ts"],  // Files likely to be affected
-    "change_description": "Brief description of the change"
+    "summary": "Brief description of what was changed",
+    "files": [
+        {{
+            "file_path": "path/to/file.ext",
+            "file_content": "complete updated file content here",
+            "file_language": "language",
+            "file_purpose": "brief purpose"
+        }}
+    ]
 }}
 
-Be conservative - only include agents that truly need to re-run.
-For simple code changes, only "engineer" is needed.
-For new features, you may need "manager" -> "architect" -> "engineer".
-"""
+CRITICAL: Return the COMPLETE file content for each modified file, not just the changed parts.
+Return ONLY valid JSON, no markdown fences, no extra text."""
 
 
 class ChatService:
     """
     Service for handling chat-based project iterations.
 
-    Analyzes user messages to determine which agents need re-execution
-    and updates only the affected files.
+    Uses RAG to identify relevant files, reads their full contents,
+    then makes a single LLM call to get targeted edits.
     """
 
     def __init__(self, model: str | None = None):
         """Initialize the chat service."""
-        self.project_store = ProjectStore()
         self.file_store = FileStore()
-        self.pipeline = AgentPipeline()
-        self.llm = get_llm(temperature=0.3, model=model)
+        self.retriever = CodebaseRetriever()
+        self.settings = get_settings()
+        self._model = model
+        self.llm = self._create_llm(model)
+
+    def _create_llm(self, model: str | None = None):
+        """Create an LLM instance with a generous timeout for chat."""
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        return ChatGoogleGenerativeAI(
+            model=model or self.settings.llm_model,
+            google_api_key=self.settings.google_api_key,
+            timeout=300,  # 5 min — chat prompts are large
+            temperature=0.3,
+            convert_system_message_to_human=True,
+        )
 
     async def process_message(
         self,
@@ -71,215 +99,246 @@ class ChatService:
         """
         Process a chat message and update the project.
 
-        Args:
-            project_id: Project identifier
-            request: Chat request with user message
-
-        Returns:
-            ChatResponse with assistant response and updates
+        Flow: RAG retrieval -> Read files -> Single LLM call -> Write changes
         """
-        # Re-initialize LLM if a specific model was requested
         if request.model:
-            self.llm = get_llm(temperature=0.3, model=request.model)
+            self.llm = self._create_llm(request.model)
 
-        project = await self.project_store.get(project_id)
-        if not project:
-            raise ValueError(f"Project {project_id} not found")
+        logger.info(f"Processing chat for project {project_id}: {request.message[:80]}")
 
-        # Classify intent
-        intent = await self._classify_intent(request.message, project)
+        # Step 1: Get all file paths in the project
+        all_file_paths = await self.file_store.list_files(project_id)
+        if not all_file_paths:
+            raise ValueError(f"Project {project_id} has no files")
 
-        # Execute required agents
-        agents_executed = []
-        files_modified = []
-
-        if intent.get("agents_to_run"):
-            agents_executed, files_modified = await self._execute_agents(
-                project_id,
-                project,
-                request.message,
-                intent,
-            )
-
-        # Generate response message
-        response_content = await self._generate_response(
-            request.message,
-            intent,
-            files_modified,
+        # Step 2: Use RAG to find relevant files, then read full contents
+        file_context = await self._get_file_context(
+            project_id, request.message, all_file_paths
         )
 
-        # Create response
+        # Step 3: Single LLM call for targeted edits
+        llm_result = await self._call_llm(
+            request.message, file_context, all_file_paths
+        )
+
+        # Step 4: Write modified files to disk and collect specs
+        files_modified = []
+        modified_specs = []
+        for file_data in llm_result.get("files", []):
+            try:
+                file_spec = GeneratedFileSpec(
+                    file_path=file_data["file_path"],
+                    file_content=file_data["file_content"],
+                    file_language=file_data.get("file_language", "text"),
+                    file_purpose=file_data.get("file_purpose", ""),
+                )
+                await self.file_store.write_file(project_id, file_spec)
+                files_modified.append(file_spec.file_path)
+                modified_specs.append(file_spec)
+                logger.info(f"  Updated: {file_spec.file_path}")
+            except Exception as e:
+                logger.error(f"  Failed to write {file_data.get('file_path')}: {e}")
+
+        # Step 5: Update MongoDB with the modified engineer output
+        if files_modified:
+            await self._update_project_state(project_id, modified_specs)
+
+        # Step 6: Build response
+        summary = llm_result.get("summary", "Changes applied.")
+        if files_modified:
+            files_list = "\n".join(f"- {f}" for f in files_modified)
+            response_content = f"{summary}\n\nUpdated files:\n{files_list}"
+        else:
+            response_content = summary
+
+        logger.info(f"Chat complete: {len(files_modified)} files modified")
+
         response_message = ChatMessage(
             id=str(uuid.uuid4())[:8],
             role="assistant",
             content=response_content,
             timestamp=datetime.utcnow(),
-            agent_triggered=agents_executed[0] if agents_executed else None,
+            agent_triggered="engineer",
             files_modified=files_modified,
         )
 
         return ChatResponse(
             message=response_message,
-            agents_executed=agents_executed,
+            agents_executed=["engineer"] if files_modified else [],
             files_modified=files_modified,
+            files_referenced=[],
             project_updated=len(files_modified) > 0,
         )
 
-    async def _classify_intent(
+    async def _get_file_context(
+        self,
+        project_id: str,
+        message: str,
+        all_file_paths: list[str],
+    ) -> str:
+        """Build file context for the LLM prompt.
+
+        For small projects (<=30 files): include ALL files — gives LLM full picture.
+        For large projects: use RAG to select the most relevant files.
+        """
+
+        # Small projects: just include everything
+        if len(all_file_paths) <= 30:
+            logger.info(
+                f"Small project ({len(all_file_paths)} files), including all"
+            )
+            return await self._read_all_files(project_id, all_file_paths)
+
+        # Large projects: use RAG for smart file selection
+        if self.settings.rag_enabled:
+            try:
+                relevant_files = await self.retriever.retrieve_files(
+                    project_id, message, k=15
+                )
+                if relevant_files:
+                    rag_paths = {f["file_path"] for f in relevant_files}
+                    logger.info(
+                        f"RAG identified {len(rag_paths)} relevant files: {rag_paths}"
+                    )
+
+                    context_parts = []
+                    for f in relevant_files:
+                        context_parts.append(
+                            f"### {f['file_path']} ({f['language']})\n"
+                            f"```{f['language']}\n{f['content']}\n```"
+                        )
+                    return "\n\n".join(context_parts)
+            except Exception as e:
+                logger.warning(f"RAG retrieval failed, falling back: {e}")
+
+        # Fallback: read all files with a size cap
+        return await self._read_all_files(project_id, all_file_paths)
+
+    async def _read_all_files(
+        self,
+        project_id: str,
+        file_paths: list[str],
+        max_chars: int = 120000,
+    ) -> str:
+        """Read all project files into a context string."""
+        context_parts = []
+        total_chars = 0
+
+        for file_path in file_paths:
+            file_data = await self.file_store.read_file(project_id, file_path)
+            if file_data and file_data.content:
+                section = (
+                    f"### {file_path} ({file_data.language})\n"
+                    f"```{file_data.language}\n{file_data.content}\n```"
+                )
+                if total_chars + len(section) > max_chars:
+                    context_parts.append(f"### {file_path} — [truncated]")
+                    break
+                context_parts.append(section)
+                total_chars += len(section)
+
+        return "\n\n".join(context_parts)
+
+    async def _call_llm(
         self,
         message: str,
-        project: Project,
+        file_context: str,
+        all_file_paths: list[str],
     ) -> dict[str, Any]:
-        """Classify the user's intent to determine which agents to run."""
-        file_count = 0
-        if project.state.engineer_output:
-            file_count = len(project.state.engineer_output.files)
+        """Make a single LLM call to get targeted file edits."""
 
-        prompt = INTENT_CLASSIFIER_PROMPT.format(
+        prompt = CHAT_EDIT_PROMPT.format(
             message=message,
-            project_name=project.name or "Unnamed",
-            project_description=project.description or "No description",
-            file_count=file_count,
+            file_context=file_context,
+            all_file_paths="\n".join(f"- {p}" for p in all_file_paths),
         )
+
+        logger.info("Calling LLM for targeted edits...")
 
         try:
             response = await self.llm.ainvoke([HumanMessage(content=prompt)])
-            content = response.content
+            raw = response.content
+            # Gemini may return content as a list of parts
+            if isinstance(raw, list):
+                content = "".join(
+                    part if isinstance(part, str) else part.get("text", "")
+                    for part in raw
+                ).strip()
+            else:
+                content = raw.strip()
 
-            # Parse JSON from response
-            import json
-            import re
+            # Strip markdown fences if present
+            if content.startswith("```"):
+                content = re.sub(r"^```(?:json)?\s*\n?", "", content)
+                content = re.sub(r"\n?```\s*$", "", content)
 
-            # Extract JSON from the response
-            json_match = re.search(r"\{.*\}", content, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group())
+            result = json.loads(content)
+            files_count = len(result.get("files", []))
+            logger.info(f"LLM returned {files_count} files to update")
+            return result
 
-            # Default to engineer only if parsing fails
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse LLM JSON response: {e}")
+            logger.error(f"Raw response: {content[:500]}")
             return {
-                "agents_to_run": ["engineer"],
-                "affected_files": [],
-                "change_description": message,
+                "summary": "Failed to parse the response. Please try again.",
+                "files": [],
             }
+        except Exception as e:
+            logger.error(f"LLM call failed: {e}", exc_info=True)
+            return {"summary": f"Error: {str(e)}", "files": []}
 
-        except Exception:
-            # Default fallback
-            return {
-                "agents_to_run": ["engineer"],
-                "affected_files": [],
-                "change_description": message,
-            }
-
-    async def _execute_agents(
+    async def _update_project_state(
         self,
         project_id: str,
-        project: Project,
-        message: str,
-        intent: dict[str, Any],
-    ) -> tuple[list[str], list[str]]:
-        """Execute the required agents and return results."""
-        agents_to_run = intent.get("agents_to_run", [])
-        affected_files = intent.get("affected_files", [])
-        change_description = intent.get("change_description", message)
+        modified_specs: list[GeneratedFileSpec],
+    ) -> None:
+        """Update the engineer output in MongoDB with modified files."""
+        try:
+            project_store = ProjectStore()
+            project = await project_store.get(project_id)
+            if not project:
+                logger.warning(f"Project {project_id} not found in MongoDB")
+                return
 
-        if not agents_to_run:
-            return [], []
+            # Get existing engineer output files
+            existing_output = project.state.engineer_output
+            if existing_output:
+                # Build a map of existing files
+                files_map = {f.file_path: f for f in existing_output.files}
+                # Update/add modified files
+                for spec in modified_specs:
+                    files_map[spec.file_path] = spec
+                # Create updated engineer output
+                updated_output = EngineerOutput(
+                    files=list(files_map.values()),
+                    implementation_notes=existing_output.implementation_notes,
+                    dependencies_added=existing_output.dependencies_added,
+                    setup_instructions=existing_output.setup_instructions,
+                    reasoning=existing_output.reasoning,
+                )
+            else:
+                # No existing output — create fresh
+                updated_output = EngineerOutput(
+                    files=modified_specs,
+                    implementation_notes="Updated via chat",
+                    dependencies_added=[],
+                    setup_instructions=[],
+                    reasoning="Chat-based file update",
+                )
 
-        # Build context for the change
-        context = f"""
-This is an INCREMENTAL UPDATE to an existing project.
+            await project_store.update_state(
+                project_id, engineer_output=updated_output
+            )
+            logger.info(f"Updated MongoDB for project {project_id}")
 
-Change Request: {message}
-Change Description: {change_description}
-Affected Files: {', '.join(affected_files) if affected_files else 'To be determined'}
-
-IMPORTANT: Only modify what's necessary. Do not regenerate the entire project.
-Focus on the specific change requested.
-"""
-
-        # Determine starting point
-        start_agent = agents_to_run[0]
-
-        # Get current state
-        from app.graph.state import PipelineState
-
-        current_state: PipelineState = {
-            "project_id": project_id,
-            "user_prompt": project.prompt + "\n\n" + context,
-            "context": context,
-            "manager_output": project.state.manager_output,
-            "architect_output": project.state.architect_output,
-            "engineer_output": project.state.engineer_output,
-            "qa_output": project.state.qa_output,
-            "current_stage": "pending",
-            "progress": 0,
-            "error": None,
-            "error_stage": None,
-            "started_at": datetime.utcnow().isoformat(),
-            "completed_at": None,
-            "execution_log": [],
-        }
-
-        # Resume from the starting agent
-        final_state = await self.pipeline.resume_from(current_state, start_agent)
-
-        # Get modified files
-        files_modified = []
-        if final_state.get("engineer_output"):
-            for file_spec in final_state["engineer_output"].files:
-                await self.file_store.write_file(project_id, file_spec)
-                files_modified.append(file_spec.file_path)
-
-        # Update project state
-        await self.project_store.update_state(
-            project_id,
-            manager_output=final_state.get("manager_output") or project.state.manager_output,
-            architect_output=final_state.get("architect_output") or project.state.architect_output,
-            engineer_output=final_state.get("engineer_output") or project.state.engineer_output,
-            qa_output=final_state.get("qa_output") or project.state.qa_output,
-        )
-
-        return agents_to_run, files_modified
-
-    async def _generate_response(
-        self,
-        user_message: str,
-        intent: dict[str, Any],
-        files_modified: list[str],
-    ) -> str:
-        """Generate a natural language response for the user."""
-        agents_run = intent.get("agents_to_run", [])
-        change_desc = intent.get("change_description", "")
-
-        if not agents_run:
-            return "I understood your message, but no changes were needed."
-
-        if files_modified:
-            files_list = "\n".join(f"- {f}" for f in files_modified[:5])
-            if len(files_modified) > 5:
-                files_list += f"\n- ... and {len(files_modified) - 5} more files"
-
-            return f"""I've processed your request: {change_desc}
-
-The following files were updated:
-{files_list}
-
-You can view the changes in the file explorer."""
-
-        return f"""I've analyzed your request: {change_desc}
-
-The {', '.join(agents_run)} agent(s) have been executed to process your changes."""
+        except Exception as e:
+            logger.error(f"Failed to update MongoDB: {e}", exc_info=True)
 
     async def get_chat_history(
         self,
         project_id: str,
         limit: int = 50,
     ) -> list[ChatMessage]:
-        """
-        Get chat history for a project.
-
-        Note: This is a simplified implementation.
-        A production system would store chat history in the database.
-        """
-        # For now, return empty - would need chat storage
+        """Get chat history for a project."""
         return []

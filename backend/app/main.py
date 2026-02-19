@@ -5,6 +5,7 @@ A production-ready agentic system with SOP-driven autonomous agents.
 Uses Google Gemini 3 Flash via LangChain for all agent operations.
 """
 
+import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -14,6 +15,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import api_router
 from app.config import get_settings
 from app.llm.gemini import get_llm_config
+
+# Only show HTTP request/response logs + app-level logs
+logging.basicConfig(level=logging.WARNING)
+logging.getLogger("uvicorn.access").setLevel(logging.INFO)
+logging.getLogger("app").setLevel(logging.INFO)
 
 
 @asynccontextmanager
@@ -116,6 +122,7 @@ def serve() -> None:
         host="0.0.0.0",
         port=8000,
         reload=settings.debug,
+        log_level="debug" if settings.debug else "info",
     )
 
 

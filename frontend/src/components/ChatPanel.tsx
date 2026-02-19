@@ -9,6 +9,7 @@ import {
   Infinity,
   Zap,
   Check,
+  FileCode,
 } from "lucide-react";
 import { sendChatMessage } from "@/lib/api";
 import { useProjectStore } from "@/lib/store";
@@ -127,8 +128,11 @@ export function ChatPanel({ projectId, embedded = false }: ChatPanelProps) {
         autoMode ? null : selectedModel,
       );
 
-      // Add assistant response
-      addChatMessage(response.message);
+      // Add assistant response — merge files_referenced from the response
+      addChatMessage({
+        ...response.message,
+        files_referenced: response.files_referenced,
+      });
 
       // Refresh project if updated
       if (response.project_updated) {
@@ -241,6 +245,17 @@ export function ChatPanel({ projectId, embedded = false }: ChatPanelProps) {
                           Modified: {msg.files_modified.join(", ")}
                         </div>
                       )}
+                      {msg.role === "assistant" &&
+                        msg.files_referenced &&
+                        msg.files_referenced.length > 0 && (
+                          <div className="mt-1.5 flex items-center gap-1 text-xs text-foreground-muted">
+                            <FileCode className="h-3 w-3" />
+                            <span>
+                              Referenced {msg.files_referenced.length} file
+                              {msg.files_referenced.length !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        )}
                     </div>
                   </div>
                 ))}

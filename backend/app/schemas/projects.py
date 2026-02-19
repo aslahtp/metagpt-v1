@@ -121,4 +121,8 @@ class ChatResponse(BaseModel):
     files_modified: list[str] = Field(
         default_factory=list, description="Files that were modified"
     )
+    files_referenced: list[str] = Field(
+        default_factory=list, description="Files referenced via RAG context"
+    )
     project_updated: bool = Field(False, description="Whether project state changed")
+

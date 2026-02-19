@@ -6,13 +6,16 @@ This service coordinates:
 - File generation
 - State persistence
 - Streaming updates
+- RAG indexing after generation
 """
 
+import logging
 import uuid
 from datetime import datetime
 from typing import Any, AsyncGenerator
 
 from app.graph import AgentPipeline, PipelineState
+from app.rag.indexer import CodebaseIndexer
 from app.schemas.agents import GeneratedFileSpec
 from app.schemas.projects import (
     PipelineStage,
@@ -21,6 +24,8 @@ from app.schemas.projects import (
     ProjectState,
 )
 from app.storage import FileStore, ProjectStore
+
+logger = logging.getLogger(__name__)
 
 
 class PipelineService:
@@ -35,6 +40,7 @@ class PipelineService:
         self.project_store = ProjectStore()
         self.file_store = FileStore()
         self.pipeline = AgentPipeline()
+        self.indexer = CodebaseIndexer()
 
     async def create_project(self, prompt: str, user_id: str = "") -> Project:
         """
@@ -139,6 +145,13 @@ class PipelineService:
                 if node_name == "engineer" and update.get("engineer_output"):
                     for file_spec in update["engineer_output"].files:
                         await self.file_store.write_file(project_id, file_spec)
+
+                    # Index files for RAG after writing
+                    try:
+                        await self.indexer.index_project(project_id)
+                        logger.info(f"Indexed project {project_id} for RAG")
+                    except Exception as e:
+                        logger.warning(f"RAG indexing failed: {e}")
 
             # Return final project
             project = await self.project_store.get(project_id)

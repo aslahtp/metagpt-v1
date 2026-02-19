@@ -171,6 +171,7 @@ export interface ChatMessage {
   timestamp: string;
   agent_triggered?: string;
   files_modified: string[];
+  files_referenced?: string[];
 }
 
 // ── API Functions ──
@@ -234,6 +235,7 @@ export async function sendChatMessage(
   message: ChatMessage;
   agents_executed: string[];
   files_modified: string[];
+  files_referenced: string[];
   project_updated: boolean;
 }> {
   const body: Record<string, unknown> = { message };

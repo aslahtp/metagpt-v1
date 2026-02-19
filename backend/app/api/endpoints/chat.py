@@ -1,5 +1,6 @@
 """Chat endpoints for iterative project updates."""
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,6 +9,8 @@ from app.auth import get_current_user
 from app.models.user import User
 from app.schemas.projects import ChatMessage, ChatRequest, ChatResponse
 from app.services import ChatService, PipelineService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -46,14 +49,18 @@ async def send_chat_message(
     service = ChatService()
 
     try:
+        logger.info(f"Chat request for project {project_id}: {request.message[:80]}")
         response = await service.process_message(project_id, request)
+        logger.info(f"Chat response: {len(response.files_modified)} files modified")
         return response
     except ValueError as e:
+        logger.error(f"Chat ValueError: {e}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except Exception as e:
+        logger.error(f"Chat error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing chat message: {str(e)}",
