@@ -26,24 +26,30 @@ uv run pytest
 
 ```
 app/
+├── main.py          # FastAPI application entry point
+├── config.py        # Application settings (LLM, projects dir, debug, etc.)
+├── db.py            # Database/session setup (if enabled)
+├── auth.py          # Authentication helpers and dependencies
+├── api/             # FastAPI routing layer
+│   ├── router.py    # Top-level API router
+│   └── endpoints/   # Versioned endpoint modules (/api/v1/*)
 ├── agents/          # SOP-driven agent implementations
 │   ├── base.py      # Base agent class
 │   ├── manager.py   # Manager Agent
 │   ├── architect.py # Architect Agent
 │   ├── engineer.py  # Engineer Agent
 │   └── qa.py        # QA Agent
-├── api/             # FastAPI routes
-│   └── endpoints/   # API endpoint modules
 ├── graph/           # LangGraph orchestration
 │   ├── state.py     # Pipeline state definition
-│   └── orchestrator.py  # Agent pipeline
+│   └── orchestrator.py  # Agent pipeline graph
 ├── llm/             # LLM configuration
-│   └── gemini.py    # Gemini 3 Flash setup
-├── schemas/         # Pydantic models
-├── services/        # Business logic
+│   └── gemini.py    # Google Gemini configuration via LangChain
+├── models/          # Persistence/domain models (projects, users)
+├── schemas/         # Pydantic models (API + agents)
+├── services/        # Business logic (pipeline, chat, sandbox)
 ├── sop/             # Standard Operating Procedures
-├── storage/         # File and project storage
-└── main.py          # Application entry point
+├── storage/         # File and project storage helpers
+└── rag/             # Retrieval-augmented generation utilities
 ```
 
 ## LLM Configuration

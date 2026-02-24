@@ -1,10 +1,10 @@
 """
-Centralized LLM Configuration - Google Gemini 3 Flash via LangChain.
+Centralized LLM Configuration - Google Gemini 3 via LangChain.
 
 This module provides the ONLY LLM configuration for the entire system.
 All agents MUST use the LLM instances provided by this module.
 
-LLM: Google Gemini 3 Flash
+LLM: Google Gemini 3
 Access: LangChain's Google Generative AI integration
 """
 
@@ -35,7 +35,7 @@ def get_llm(
     Args:
         temperature: Override default temperature (0.0-1.0)
         max_tokens: Override default max output tokens
-        model: Override default model (e.g. 'gemini-2.0-flash', 'gemini-2.5-pro')
+        model: Override default model (e.g. 'gemini-2.5-flash', 'gemini-2.5-pro')
 
     Returns:
         ChatGoogleGenerativeAI: Configured Gemini instance

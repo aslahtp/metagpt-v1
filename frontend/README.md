@@ -21,21 +21,30 @@ npm run dev
 
 ```
 src/
-├── app/                 # Next.js App Router pages
-│   ├── page.tsx         # Landing page
-│   ├── project/[id]/    # Project workspace
-│   └── projects/        # Projects list
-├── components/          # React components
-│   ├── AgentOutputs.tsx # Agent output viewer
-│   ├── ChatPanel.tsx    # Chat interface
-│   ├── CodeViewer.tsx   # Syntax-highlighted code
-│   ├── ExecutionTimeline.tsx  # Pipeline progress
-│   ├── FileExplorer.tsx # File tree
-│   └── PreviewPanel.tsx # React preview
-└── lib/                 # Utilities
-    ├── api.ts           # API client
-    ├── store.ts         # Zustand state
-    └── utils.ts         # Helper functions
+├── app/                     # Next.js App Router pages & layouts
+│   ├── layout.tsx           # Root layout, providers, and theme
+│   ├── page.tsx             # Landing page
+│   ├── projects/page.tsx    # Projects list
+│   ├── project/[id]/page.tsx# Project workspace
+│   ├── signin/page.tsx      # Sign-in page
+│   └── signup/page.tsx      # Sign-up page
+├── components/              # React components
+│   ├── AgentOutputs.tsx     # Agent output viewer
+│   ├── ChatPanel.tsx        # Chat interface
+│   ├── CodeViewer.tsx       # Syntax-highlighted code
+│   ├── ExecutionTimeline.tsx# Pipeline progress
+│   ├── FileExplorer.tsx     # File tree
+│   ├── PreviewPanel.tsx     # React preview
+│   └── PreviewFrame.tsx     # Iframe wrapper for preview
+├── lib/                     # Utilities & state
+│   ├── api.ts               # API client
+│   ├── store.ts             # Main Zustand state
+│   ├── authStore.ts         # Auth-related Zustand state
+│   ├── editorThemes.ts      # Editor/theme helpers
+│   └── utils.ts             # Helper functions
+├── app/globals.css          # Global Tailwind styles
+├── middleware.ts            # Next.js middleware (auth/routing)
+└── types/monaco-editor-react.d.ts # Monaco editor type declarations
 ```
 
 ## Features

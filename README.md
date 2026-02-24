@@ -39,29 +39,35 @@ All agents use **Google Gemini 3 Flash** via LangChain. No OpenAI, no Anthropic,
 ## Project Structure
 
 ```
-metawithcursor/
+metagpt-v1/
 ├── backend/
 │   ├── app/
-│   │   ├── agents/        # SOP-driven agents
-│   │   ├── api/           # FastAPI endpoints
-│   │   ├── graph/         # LangGraph orchestration
-│   │   ├── llm/           # Gemini 3 Flash config
-│   │   ├── models/        # Data models
-│   │   ├── schemas/       # Pydantic schemas
-│   │   ├── services/      # Business logic
-│   │   ├── sop/           # Agent SOPs
-│   │   ├── storage/       # File & project storage
-│   │   └── main.py        # App entry point
+│   │   ├── main.py        # FastAPI app entry point
+│   │   ├── config.py      # Application settings (LLM, projects dir, debug, etc.)
+│   │   ├── db.py          # Database/session setup (if enabled)
+│   │   ├── auth.py        # Authentication helpers and dependencies
+│   │   ├── api/           # FastAPI routing layer
+│   │   │   ├── router.py  # Top-level API router
+│   │   │   └── endpoints/ # /api/v1/* endpoint modules
+│   │   ├── agents/        # SOP-driven agents (Manager, Architect, Engineer, QA)
+│   │   ├── graph/         # LangGraph pipeline state and orchestrator
+│   │   ├── llm/           # Central Gemini configuration
+│   │   ├── models/        # Persistence/domain models (projects, users)
+│   │   ├── schemas/       # Pydantic schemas (API + agents)
+│   │   ├── services/      # Business logic (pipeline, chat, sandbox)
+│   │   ├── sop/           # Agent SOP definitions
+│   │   ├── storage/       # File & project storage helpers
+│   │   └── rag/           # Retrieval-augmented generation utilities
 │   ├── tests/
 │   └── pyproject.toml
 ├── frontend/
 │   ├── src/
-│   │   ├── app/           # Next.js pages
+│   │   ├── app/           # Next.js routes and layouts
 │   │   ├── components/    # React components
-│   │   └── lib/           # Utilities & API
+│   │   └── lib/           # API client, state, utilities
 │   ├── package.json
 │   └── tailwind.config.ts
-└── README.md
+└── docs/                  # Architecture & technical documentation
 ```
 
 ## Quick Start
