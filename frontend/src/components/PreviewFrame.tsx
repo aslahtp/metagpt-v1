@@ -29,7 +29,10 @@ const DEVICE_WIDTHS: Record<DevicePreset, number | null> = {
   tablet: 768,
 };
 
-const DEVICE_ICONS: Record<DevicePreset, React.ComponentType<{ className?: string }>> = {
+const DEVICE_ICONS: Record<
+  DevicePreset,
+  React.ComponentType<{ className?: string }>
+> = {
   responsive: Maximize,
   mobile: Smartphone,
   tablet: Tablet,
@@ -208,7 +211,8 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
         setIframeKey((k) => k + 1);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to create sandbox";
+      const msg =
+        err instanceof Error ? err.message : "Failed to create sandbox";
       setSandboxError(msg);
       setIsLoading(false);
     } finally {
@@ -292,7 +296,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
                       {DEVICE_LABELS[preset]}
                     </button>
                   );
-                }
+                },
               )}
             </div>
           )}
@@ -317,17 +321,20 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
       </div>
 
       {/* Preview Area */}
-      <div ref={containerRef} className="flex-1 relative bg-white overflow-hidden">
+      <div
+        ref={containerRef}
+        className="flex-1 relative bg-white overflow-hidden"
+      >
         {!previewInitialized ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-background-tertiary">
+          <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-background-tertiary">
             <div className="max-w-md text-center p-8">
               <div className="w-16 h-16 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
                 <Cloud className="h-8 w-8 text-accent" />
               </div>
               <h3 className="text-lg font-medium mb-2">Preview Project</h3>
               <p className="text-sm text-foreground-muted mb-6">
-                Launch a cloud sandbox to preview the generated project, or load a
-                local dev server URL.
+                Launch a cloud sandbox to preview the generated project, or load
+                a local dev server URL.
               </p>
 
               {/* Sandbox error */}

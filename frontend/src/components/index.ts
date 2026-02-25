@@ -9,3 +9,4 @@ export { ChatPanel } from "./ChatPanel";
 export { AgentOutputs } from "./AgentOutputs";
 export { PreviewPanel } from "./PreviewPanel";
 export { PreviewFrame } from "./PreviewFrame";
+export { ThemeProvider } from "./ThemeProvider";

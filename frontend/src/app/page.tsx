@@ -11,12 +11,15 @@ import {
   BookOpen,
   LogOut,
   Crown,
+  Sun,
+  Moon,
 } from "lucide-react";
 import StarBorder from "@/components/StarBorder";
 import SplitText from "@/components/SplitText";
 import ShinyText from "@/components/ShinyText";
 import SpotlightCard from "@/components/SpotLightCard";
 import { useAuthStore } from "@/lib/authStore";
+import { useProjectStore } from "@/lib/store";
 
 const features = [
   {
@@ -66,10 +69,16 @@ export default function HomePage() {
   const [activeStep, setActiveStep] = useState(-1);
   const [pipelineStarted, setPipelineStarted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const pipelineRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   const { user, token, initialize, signout, isAuthenticated } = useAuthStore();
+  const { uiTheme, setUiTheme } = useProjectStore();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     initialize();
@@ -182,10 +191,12 @@ export default function HomePage() {
             borderRadius: scrolled ? "9999px" : "0px",
             marginTop: scrolled ? "0.75rem" : "0px",
             backgroundColor: scrolled
-              ? "rgba(29,27,21,0.8)"
-              : "rgba(20,18,11,0.8)",
-            borderColor: scrolled ? "#2e2a22" : "transparent",
-            borderBottomColor: "#2e2a22",
+              ? "rgb(var(--color-background-secondary) / 0.8)"
+              : "rgb(var(--color-background) / 0.8)",
+            borderColor: scrolled
+              ? "rgb(var(--color-border))"
+              : "transparent",
+            borderBottomColor: "rgb(var(--color-border))",
             boxShadow: scrolled
               ? "0 10px 15px -3px rgba(0,0,0,0.2)"
               : "none",
@@ -197,6 +208,27 @@ export default function HomePage() {
             </span>
           </a>
           <nav className="flex items-center gap-5 overflow-hidden">
+            <button
+              onClick={() => setUiTheme(uiTheme === "dark" ? "light" : "dark")}
+              className="text-foreground-subtle hover:text-foreground-muted transition-all duration-500 shrink-0"
+              title={mounted ? (uiTheme === "dark" ? "Switch to light theme" : "Switch to dark theme") : undefined}
+              style={{
+                opacity: scrolled ? 0 : 1,
+                width: scrolled ? 0 : "auto",
+                marginRight: scrolled ? 0 : undefined,
+                pointerEvents: scrolled ? "none" : "auto",
+              }}
+            >
+              {mounted ? (
+                uiTheme === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )
+              ) : (
+                <span className="inline-block h-4 w-4" aria-hidden />
+              )}
+            </button>
             <a
               href="/docs"
               className="text-foreground-muted hover:text-foreground text-sm transition-all duration-500"

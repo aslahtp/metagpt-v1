@@ -16,6 +16,16 @@ function getStoredTheme(): string {
   }
 }
 
+function getStoredUiTheme(): "dark" | "light" {
+  if (typeof window === "undefined") return "dark";
+  try {
+    const stored = localStorage.getItem("metagpt-ui-theme");
+    return stored === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
 interface ProjectStore {
   // Current project
   project: Project | null;
@@ -75,6 +85,10 @@ interface ProjectStore {
   // Editor theme
   editorTheme: string;
   setEditorTheme: (theme: string) => void;
+
+  // UI theme (light/dark)
+  uiTheme: "dark" | "light";
+  setUiTheme: (theme: "dark" | "light") => void;
 
   // File explorer settings
   hideNodeModules: boolean;
@@ -168,6 +182,15 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       localStorage.setItem("metagpt-editor-theme", theme);
     } catch {}
     set({ editorTheme: theme });
+  },
+
+  // UI theme (persisted to localStorage)
+  uiTheme: getStoredUiTheme(),
+  setUiTheme: (theme) => {
+    try {
+      localStorage.setItem("metagpt-ui-theme", theme);
+    } catch {}
+    set({ uiTheme: theme });
   },
 
   // File explorer settings

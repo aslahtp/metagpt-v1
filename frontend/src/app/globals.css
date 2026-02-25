@@ -3,9 +3,46 @@
 @tailwind utilities;
 
 @layer base {
+  /* Light theme (default) */
   :root {
-    --background: 44 30% 5%;
-    --foreground: 0 0% 98%;
+    --color-background: 250 250 248;
+    --color-background-secondary: 242 240 234;
+    --color-background-tertiary: 230 226 216;
+    --color-foreground: 20 18 11;
+    --color-foreground-muted: 92 90 84;
+    --color-foreground-subtle: 140 138 132;
+    --color-border: 210 205 195;
+    --color-border-muted: 230 225 216;
+    --color-accent: 20 18 11;
+    --color-accent-hover: 46 42 34;
+    --color-accent-muted: 136 136 136;
+    --color-success: 74 222 128;
+    --color-success-muted: 34 197 94;
+    --color-warning: 251 191 36;
+    --color-warning-muted: 245 158 11;
+    --color-error: 248 113 113;
+    --color-error-muted: 239 68 68;
+  }
+
+  /* Dark theme */
+  .dark {
+    --color-background: 20 18 11;
+    --color-background-secondary: 29 27 21;
+    --color-background-tertiary: 38 36 30;
+    --color-foreground: 255 255 255;
+    --color-foreground-muted: 160 160 160;
+    --color-foreground-subtle: 102 102 102;
+    --color-border: 46 42 34;
+    --color-border-muted: 35 31 24;
+    --color-accent: 255 255 255;
+    --color-accent-hover: 224 224 224;
+    --color-accent-muted: 136 136 136;
+    --color-success: 74 222 128;
+    --color-success-muted: 34 197 94;
+    --color-warning: 251 191 36;
+    --color-warning-muted: 245 158 11;
+    --color-error: 248 113 113;
+    --color-error-muted: 239 68 68;
   }
 
   * {
@@ -28,11 +65,51 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
+    @apply bg-border-muted rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-foreground-subtle;
+  }
+
+  /* Scrollbars that only show on hover */
+  .scrollbar-auto-hide {
+    /* Firefox: hide by default */
+    scrollbar-width: none;
+  }
+
+  .scrollbar-auto-hide::-webkit-scrollbar {
+    /* WebKit: hide by default */
+    width: 0px;
+    height: 0px;
+  }
+
+  .scrollbar-auto-hide:hover {
+    /* Firefox: show thin scrollbar on hover */
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-auto-hide:hover::-webkit-scrollbar {
+    /* WebKit: show normal scrollbar on hover */
+    width: 8px;
+    height: 8px;
+  }
+
+  /* File explorer scrollbar: lighter in light mode, darker in dark mode */
+  :root .scrollbar-auto-hide:hover {
+    scrollbar-color: rgb(var(--color-background-tertiary)) transparent;
+  }
+
+  .dark .scrollbar-auto-hide:hover {
+    scrollbar-color: rgb(var(--color-border-muted)) transparent;
+  }
+
+  :root .scrollbar-auto-hide:hover::-webkit-scrollbar-thumb {
+    @apply bg-background-tertiary rounded-full;
+  }
+
+  .dark .scrollbar-auto-hide:hover::-webkit-scrollbar-thumb {
+    @apply bg-border-muted rounded-full;
   }
 
   .material-symbols-outlined {
@@ -47,7 +124,7 @@
   }
 
   .btn-primary {
-    @apply btn bg-white text-black hover:bg-gray-200;
+    @apply btn bg-accent text-background hover:bg-accent-hover;
   }
 
   .btn-secondary {
@@ -75,7 +152,7 @@
   }
 
   .timeline-dot-active {
-    @apply timeline-dot bg-white animate-pulse;
+    @apply timeline-dot bg-accent animate-pulse;
   }
 
   .timeline-dot-complete {

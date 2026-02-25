@@ -1,7 +1,7 @@
 """
 Embeddings configuration for RAG.
 
-Uses Google Gemini's text-embedding-004 model via LangChain.
+Uses Google Gemini's gemini-embedding-001 model via LangChain.
 Reuses the existing GOOGLE_API_KEY from app config.
 """
 
@@ -17,7 +17,7 @@ def get_embeddings() -> GoogleGenerativeAIEmbeddings:
     """
     Get the configured embeddings instance.
 
-    Uses Google's text-embedding-004 model which produces
+    Uses Google's gemini-embedding-001 model which produces
     768-dimensional embeddings optimized for retrieval.
 
     Returns:

@@ -98,7 +98,7 @@ export function PreviewPanel() {
       )}
 
       {/* Preview Content */}
-      <div className="flex-1 bg-background-tertiary relative">
+      <div className="flex-1 bg-white dark:bg-background-tertiary relative">
         {previewEnabled ? (
           <>
             {iframeError ? (
@@ -175,8 +175,8 @@ export function PreviewPanel() {
             {is_nextjs_project
               ? "Next.js"
               : is_react_project
-              ? "React"
-              : "Unknown"}{" "}
+                ? "React"
+                : "Unknown"}{" "}
             Project
           </span>
           <span>{project.state.engineer_output?.files.length || 0} files</span>
