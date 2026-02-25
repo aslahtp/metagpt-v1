@@ -138,7 +138,7 @@ export function ExecutionTimeline() {
                     className={cn(
                       "absolute left-[14px] top-[36px] bottom-[-4px] z-0 transition-colors duration-300",
                       status === "complete"
-                        ? "w-[2px] bg-white/60"
+                        ? "w-[2px] bg-foreground/25"
                         : "w-px bg-border",
                     )}
                   />

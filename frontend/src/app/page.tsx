@@ -168,15 +168,17 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen flex flex-col relative">
-      {/* Subtle top radial glow */}
-      <div
-        className="pointer-events-none fixed inset-0 z-0"
-        aria-hidden="true"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,255,255,0.03) 0%, transparent 60%)",
-        }}
-      />
+      {/* Subtle top radial glow — dark mode only (light mode uses CSS background) */}
+      {mounted && uiTheme === "dark" && (
+        <div
+          className="pointer-events-none fixed inset-0 z-0"
+          aria-hidden="true"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,255,255,0.04) 0%, transparent 60%)",
+          }}
+        />
+      )}
 
       {/* ── Header ── */}
       <div className="sticky top-0 z-50 w-full flex justify-center px-6">
@@ -299,8 +301,8 @@ export default function HomePage() {
                 text="Powered by Gemini 3"
                 speed={3}
                 delay={1}
-                color="#b5b5b5"
-                shineColor="#ffffff"
+                color={mounted && uiTheme === "light" ? "#5a5870" : "#b5b5b5"}
+                shineColor={mounted && uiTheme === "light" ? "#635bff" : "#ffffff"}
                 spread={120}
                 direction="left"
                 yoyo={false}
@@ -349,7 +351,7 @@ export default function HomePage() {
             <StarBorder
               as="div"
               className="w-full rounded-2xl"
-              color="rgba(255,255,255,0.5)"
+              color={mounted && uiTheme === "light" ? "rgba(99,91,255,0.5)" : "rgba(255,255,255,0.5)"}
               speed="8s"
               thickness={1}
             >
@@ -371,11 +373,11 @@ export default function HomePage() {
                   <button
                     type="submit"
                     disabled={!prompt.trim() || isLoading}
-                    className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-black transition-all duration-200 hover:bg-gray-200 disabled:pointer-events-none disabled:opacity-40"
+                    className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-medium text-background transition-all duration-200 hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-40"
                   >
                     {isLoading ? (
                       <>
-                        <div className="h-3.5 w-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                        <div className="h-3.5 w-3.5 border-2 border-background/20 border-t-background rounded-full animate-spin" />
                         Creating...
                       </>
                     ) : (
@@ -427,6 +429,7 @@ export default function HomePage() {
               <SpotlightCard
                 key={i}
                 className="group transition-colors duration-300 hover:bg-background-secondary/80"
+                spotlightColor={mounted && uiTheme === "light" ? "rgba(99,91,255,0.08)" : "rgba(255,255,255,0.08)"}
               >
                 <div className="space-y-4">
                   <div className="w-10 h-10 rounded-lg bg-background-tertiary flex items-center justify-center">
@@ -482,7 +485,7 @@ export default function HomePage() {
                       }`}
                       style={{
                         boxShadow: isCurrent
-                          ? "0 0 16px rgba(255,255,255,0.25)"
+                          ? (mounted && uiTheme === "light" ? "0 0 16px rgba(99,91,255,0.3)" : "0 0 16px rgba(255,255,255,0.25)")
                           : "none",
                       }}
                     >
@@ -535,7 +538,7 @@ export default function HomePage() {
                       }`}
                       style={{
                         boxShadow: isCurrent
-                          ? "0 0 16px rgba(255,255,255,0.25)"
+                          ? (mounted && uiTheme === "light" ? "0 0 16px rgba(99,91,255,0.3)" : "0 0 16px rgba(255,255,255,0.25)")
                           : "none",
                       }}
                     >

@@ -125,11 +125,11 @@ export default function SignInPage() {
           <button
             type="submit"
             disabled={isLoading || !email.trim() || !password.trim()}
-            className="w-full flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black transition-all duration-200 hover:bg-gray-200 disabled:pointer-events-none disabled:opacity-40"
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-background transition-all duration-200 hover:bg-accent-hover disabled:pointer-events-none disabled:opacity-40"
           >
             {isLoading ? (
               <>
-                <div className="h-4 w-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                <div className="h-4 w-4 border-2 border-background/20 border-t-background rounded-full animate-spin" />
                 Signing in...
               </>
             ) : (

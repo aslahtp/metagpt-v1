@@ -245,10 +245,10 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
                   >
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-lg px-3 py-2 overflow-hidden",
+                        "max-w-[80%] rounded-2xl px-3 py-2 overflow-hidden",
                         msg.role === "user"
-                          ? "bg-white text-black"
-                          : "bg-background-tertiary",
+                          ? "bg-foreground text-background rounded-br-sm"
+                          : "bg-background-tertiary rounded-bl-sm",
                       )}
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
@@ -306,18 +306,18 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
                 ))}
                 {isLoading && (
                   <div className="flex justify-start">
-                    <div className="rounded-lg px-3 py-2.5 bg-background-tertiary">
+                    <div className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 bg-background-tertiary">
                       <div className="flex items-center gap-1.5">
                         <span
-                          className="animate-dot-pulse inline-block w-2 h-2 rounded-full bg-foreground-muted"
+                          className="animate-dot-pulse inline-block w-1.5 h-1.5 rounded-full bg-foreground-muted"
                           style={{ animationDelay: "0ms" }}
                         />
                         <span
-                          className="animate-dot-pulse inline-block w-2 h-2 rounded-full bg-foreground-muted"
+                          className="animate-dot-pulse inline-block w-1.5 h-1.5 rounded-full bg-foreground-muted"
                           style={{ animationDelay: "160ms" }}
                         />
                         <span
-                          className="animate-dot-pulse inline-block w-2 h-2 rounded-full bg-foreground-muted"
+                          className="animate-dot-pulse inline-block w-1.5 h-1.5 rounded-full bg-foreground-muted"
                           style={{ animationDelay: "320ms" }}
                         />
                       </div>
@@ -411,14 +411,19 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
                   <button
                     type="submit"
                     disabled={!message.trim() || isLoading}
-                    className="h-8 w-8 rounded-full bg-foreground-subtle/30 hover:bg-foreground-subtle/50 flex items-center justify-center text-foreground transition-all duration-200 disabled:opacity-40 disabled:pointer-events-none ml-0.5"
+                    className={cn(
+                      "h-8 w-8 rounded-full flex items-center justify-center transition-all duration-200 ml-0.5",
+                      message.trim() && !isLoading
+                        ? "bg-foreground text-background hover:bg-accent-hover"
+                        : "bg-foreground-subtle/20 text-foreground-subtle disabled:opacity-40 disabled:pointer-events-none"
+                    )}
                     title="Send"
                   >
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <span
-                        className="material-symbols-outlined text-[20px] leading-none -translate-y-px"
+                        className="material-symbols-outlined text-[18px] leading-none"
                         aria-hidden
                       >
                         send
