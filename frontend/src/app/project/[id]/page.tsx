@@ -323,6 +323,18 @@ export default function ProjectPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* UI theme toggle (light/dark) */}
+          <button
+            onClick={() => setUiTheme(uiTheme === "dark" ? "light" : "dark")}
+            className="flex items-center p-1 rounded-md text-foreground-muted hover:text-foreground hover:bg-background-tertiary transition-colors"
+            title={uiTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {uiTheme === "dark" ? (
+              <Moon className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
+          </button>
           <div className="flex items-center">
             <button
               onClick={() => setShowFileExplorer(!showFileExplorer)}
@@ -449,38 +461,6 @@ export default function ProjectPage() {
                               className={`absolute top-[2px] h-[14px] w-[14px] rounded-full shadow-sm transition-all duration-200 border ${
                                 hideNodeModules
                                   ? "translate-x-[16px] bg-background-secondary border-white/20"
-                                  : "translate-x-[2px] bg-background-secondary border-foreground-subtle/30"
-                              }`}
-                            />
-                          </div>
-                        </button>
-
-                        {/* UI Theme toggle */}
-                        <button
-                          onClick={() => setUiTheme(uiTheme === "dark" ? "light" : "dark")}
-                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-lg text-left transition-all duration-150 hover:bg-background-tertiary group"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            {uiTheme === "dark" ? (
-                              <Moon className="h-3.5 w-3.5 text-foreground-subtle group-hover:text-foreground-muted shrink-0" />
-                            ) : (
-                              <Sun className="h-3.5 w-3.5 text-foreground-subtle group-hover:text-foreground-muted shrink-0" />
-                            )}
-                            <span className="text-xs font-medium text-foreground-muted group-hover:text-foreground">
-                              UI Theme
-                            </span>
-                          </div>
-                          <div
-                            className={`relative w-8 h-[18px] rounded-full transition-colors duration-200 shrink-0 ${
-                              uiTheme === "light"
-                                ? "bg-accent"
-                                : "bg-foreground-subtle/30"
-                            }`}
-                          >
-                            <div
-                              className={`absolute top-[2px] h-[14px] w-[14px] rounded-full shadow-sm transition-all duration-200 border ${
-                                uiTheme === "light"
-                                  ? "translate-x-[16px] bg-background-secondary border-foreground/20"
                                   : "translate-x-[2px] bg-background-secondary border-foreground-subtle/30"
                               }`}
                             />

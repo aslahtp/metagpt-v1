@@ -6,11 +6,23 @@ import { create } from "zustand";
 import type { Project, FileTreeNode, ChatMessage, GeneratedFile } from "./api";
 import { DEFAULT_THEME } from "./editorThemes";
 
-// Helper to safely read from localStorage
+// Helper to safely read editor theme from localStorage,
+// with UI-theme-aware defaults.
 function getStoredTheme(): string {
   if (typeof window === "undefined") return DEFAULT_THEME;
   try {
-    return localStorage.getItem("metagpt-editor-theme") || DEFAULT_THEME;
+    const storedEditor = localStorage.getItem("metagpt-editor-theme");
+    if (storedEditor) return storedEditor;
+
+    // No explicit editor theme set – fall back based on UI theme
+    const uiTheme = localStorage.getItem("metagpt-ui-theme");
+    if (uiTheme === "light") {
+      // Light UI → use built-in VS Light
+      return "vs";
+    }
+
+    // Dark (or unset) UI → use MetaGPT home dark theme
+    return "metagpt-home";
   } catch {
     return DEFAULT_THEME;
   }
@@ -190,7 +202,21 @@ export const useProjectStore = create<ProjectStore>((set) => ({
     try {
       localStorage.setItem("metagpt-ui-theme", theme);
     } catch {}
-    set({ uiTheme: theme });
+
+    // Keep Monaco editor theme in sync with UI theme
+    // when using one of the default themes.
+    set((state) => {
+      let nextEditorTheme = state.editorTheme;
+
+      if (state.editorTheme === "metagpt-home" || state.editorTheme === "vs") {
+        nextEditorTheme = theme === "light" ? "vs" : "metagpt-home";
+      }
+
+      return {
+        uiTheme: theme,
+        editorTheme: nextEditorTheme,
+      };
+    });
   },
 
   // File explorer settings
