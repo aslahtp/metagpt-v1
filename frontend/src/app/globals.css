@@ -5,17 +5,27 @@
 @layer base {
   /* Light theme (default) */
   :root {
-    --color-background: 255 255 255;
-    --color-background-secondary: 246 246 249;
-    --color-background-tertiary: 236 235 241;
-    --color-foreground: 12 10 20;
-    --color-foreground-muted: 72 70 88;
-    --color-foreground-subtle: 148 146 164;
-    --color-border: 218 216 228;
-    --color-border-muted: 234 232 242;
-    --color-accent: 12 10 20;
-    --color-accent-hover: 38 34 60;
-    --color-accent-muted: 120 118 136;
+    /* Page background: cool neutral grey (like the reference UI) */
+    --color-background: 247 247 248;
+    /* Card / panel surfaces: clean white */
+    --color-background-secondary: 255 255 255;
+    /* Active / hover states: slightly deeper grey */
+    --color-background-tertiary: 237 237 240;
+
+    /* Text: pure achromatic, no tint */
+    --color-foreground: 15 15 15;
+    --color-foreground-muted: 107 107 107;
+    --color-foreground-subtle: 158 158 158;
+
+    /* Borders: barely-there cool grey */
+    --color-border: 226 226 230;
+    --color-border-muted: 240 240 242;
+
+    /* Accent: near-black (matches dark primary button in reference) */
+    --color-accent: 15 15 15;
+    --color-accent-hover: 40 40 40;
+    --color-accent-muted: 115 115 115;
+
     --color-success: 22 163 74;
     --color-success-muted: 21 128 61;
     --color-warning: 217 119 6;
@@ -54,11 +64,9 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Light mode ambient background */
+  /* No ambient gradient — palette is fully neutral */
   :root body {
-    background-image:
-      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 91, 255, 0.06) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 90% 80%, rgba(168, 85, 247, 0.04) 0%, transparent 55%);
+    background-image: none;
   }
 
   .dark body {
