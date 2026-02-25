@@ -500,9 +500,16 @@ export default function ProjectPage() {
                           </span>
                         </button>
 
-                        {/* Theme list */}
+                        {/* Theme list grouped by base */}
                         <div className="px-1.5 py-1.5 max-h-72 overflow-y-auto space-y-0.5">
-                          {EDITOR_THEMES.map((theme) => (
+                          {(["vs-dark", "vs"] as const).map((base) => {
+                            const themes = EDITOR_THEMES.filter((t) => t.base === base);
+                            return (
+                              <div key={base}>
+                                <p className="px-2.5 pt-1.5 pb-0.5 text-[10px] font-semibold uppercase tracking-widest text-foreground-subtle">
+                                  {base === "vs-dark" ? "Dark" : "Light"}
+                                </p>
+                                {themes.map((theme) => (
                             <button
                               key={theme.id}
                               onClick={() => setEditorTheme(theme.id)}
@@ -514,7 +521,7 @@ export default function ProjectPage() {
                             >
                               {/* Color Swatch */}
                               <div
-                                className="w-5 h-5 rounded-md shrink-0 border border-white/10 flex items-center justify-center overflow-hidden"
+                                className="w-5 h-5 rounded-md shrink-0 border border-black/10 dark:border-white/10 flex items-center justify-center overflow-hidden"
                                 style={{ backgroundColor: theme.swatch[0] }}
                               >
                                 <div className="flex flex-col items-center gap-px">
@@ -545,7 +552,10 @@ export default function ProjectPage() {
                                 <Check className="h-3.5 w-3.5 text-accent shrink-0" />
                               )}
                             </button>
-                          ))}
+                                ))}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
