@@ -29,7 +29,7 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
 
   const handleFocus = () => {
     setIsFocused(true);
-    setOpacity(0.6);
+    setOpacity(1);
   };
 
   const handleBlur = () => {
@@ -38,7 +38,7 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
   };
 
   const handleMouseEnter = () => {
-    setOpacity(0.6);
+    setOpacity(1);
   };
 
   const handleMouseLeave = () => {

@@ -412,7 +412,7 @@ export default function HomePage() {
               <SpotlightCard
                 key={i}
                 className="group transition-colors duration-300 hover:bg-background-secondary/80"
-                spotlightColor={mounted && uiTheme === "light" ? "rgba(99,91,255,0.08)" : "rgba(255,255,255,0.08)"}
+                spotlightColor={mounted && uiTheme === "light" ? "rgba(0,0,0,0.14)" : "rgba(255,255,255,0.08)"}
               >
                 <div className="space-y-4">
                   <div className="w-10 h-10 rounded-lg bg-background-tertiary flex items-center justify-center">
