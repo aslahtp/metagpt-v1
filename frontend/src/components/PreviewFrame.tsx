@@ -236,17 +236,17 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   return (
     <div className="h-full w-full flex flex-col bg-background">
       {/* Toolbar */}
-      <div className="h-10 border-b border-border flex items-center px-3 gap-2 shrink-0 bg-background-secondary">
+      <div className="h-10 border-b border-border flex items-center px-3 gap-2 shrink-0 bg-background">
         <input
           type="text"
           value={previewUrl}
           onChange={(e) => setPreviewUrl(e.target.value)}
           placeholder="http://localhost:5173"
-          className="flex-1 px-2 py-1 text-xs rounded border border-border bg-background focus:outline-none focus:ring-1 focus:ring-accent font-mono"
+          className="flex-1 px-2 py-1 text-xs rounded border border-border bg-background-secondary focus:outline-none focus:ring-1 focus:ring-accent font-mono"
         />
         <button
           onClick={handleLoadManual}
-          className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-white text-black hover:bg-gray-200 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-accent text-background hover:bg-accent-hover transition-colors"
         >
           <Play className="h-3 w-3" />
           Load

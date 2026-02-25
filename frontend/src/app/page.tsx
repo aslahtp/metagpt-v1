@@ -183,7 +183,7 @@ export default function HomePage() {
       {/* ── Header ── */}
       <div className="sticky top-0 z-50 w-full flex justify-center px-6">
         <header
-          className="flex items-center justify-between backdrop-blur-xl border border-transparent transition-[max-width,height,padding,border-radius,margin,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
+          className="flex items-center justify-between backdrop-blur-xl border border-transparent transition-[max-width,height,padding-left,padding-right,border-radius,margin-top] duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)]"
           style={{
             maxWidth: scrolled ? "50%" : "80rem",
             width: "100%",
@@ -212,14 +212,8 @@ export default function HomePage() {
           <nav className="flex items-center gap-5 overflow-hidden">
             <button
               onClick={() => setUiTheme(uiTheme === "dark" ? "light" : "dark")}
-              className="text-foreground-subtle hover:text-foreground-muted transition-all duration-500 shrink-0"
+              className="text-foreground-subtle hover:text-foreground-muted transition-[color] duration-200 shrink-0"
               title={mounted ? (uiTheme === "dark" ? "Switch to light theme" : "Switch to dark theme") : undefined}
-              style={{
-                opacity: scrolled ? 0 : 1,
-                width: scrolled ? 0 : "auto",
-                marginRight: scrolled ? 0 : undefined,
-                pointerEvents: scrolled ? "none" : "auto",
-              }}
             >
               {mounted ? (
                 uiTheme === "dark" ? (
@@ -231,18 +225,7 @@ export default function HomePage() {
                 <span className="inline-block h-4 w-4" aria-hidden />
               )}
             </button>
-            <a
-              href="/docs"
-              className="text-foreground-muted hover:text-foreground text-sm transition-all duration-500"
-              style={{
-                opacity: scrolled ? 0 : 1,
-                width: scrolled ? 0 : "auto",
-                marginRight: scrolled ? 0 : undefined,
-                pointerEvents: scrolled ? "none" : "auto",
-              }}
-            >
-              Docs
-            </a>
+
             {authed && (
               <a
                 href="/projects"
@@ -402,7 +385,7 @@ export default function HomePage() {
                 <button
                   key={i}
                   onClick={() => setPrompt(example)}
-                  className="px-3 py-1.5 text-[13px] text-foreground-muted rounded-lg border border-border hover:bg-background-tertiary hover:text-foreground transition-colors duration-200"
+                  className="px-3 py-1.5 text-[13px] text-foreground-muted rounded-lg border border-border hover:bg-background-tertiary hover:text-foreground transition-[background-color,color] duration-200"
                 >
                   {example.length > 44 ? example.slice(0, 44) + "..." : example}
                 </button>
