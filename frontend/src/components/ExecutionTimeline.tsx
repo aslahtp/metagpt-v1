@@ -136,7 +136,7 @@ export function ExecutionTimeline() {
                 {!isLast && (
                   <div
                     className={cn(
-                      "absolute left-[14px] top-[36px] bottom-[-4px] z-0 transition-colors duration-300",
+                      "absolute left-[14px] top-[36px] bottom-[-4px] z-0",
                       status === "complete"
                         ? "w-[2px] bg-foreground/25"
                         : "w-px bg-border",
@@ -149,7 +149,7 @@ export function ExecutionTimeline() {
                   <div className="absolute inset-[-4px] rounded-full bg-background" />
                   <div
                     className={cn(
-                      "relative w-[30px] h-[30px] rounded-full flex items-center justify-center transition-all duration-300 bg-background",
+                      "relative w-[30px] h-[30px] rounded-full flex items-center justify-center bg-background",
                       status === "complete" &&
                         "ring-2 ring-success/40",
                       status === "running" &&
