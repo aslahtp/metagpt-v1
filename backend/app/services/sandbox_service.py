@@ -125,6 +125,19 @@ class SandboxService:
                     f"{install_result.stderr}"
                 )
 
+            # Ensure Vite React plugin is installed (vite.config often uses it without listing it)
+            logger.info("Ensuring @vitejs/plugin-react in sandbox %s...", sandbox_id)
+            plugin_result = await asyncio.to_thread(
+                sandbox.commands.run,
+                "npm install @vitejs/plugin-react --save-dev",
+                cwd=app_dir,
+                timeout=120,
+            )
+            if plugin_result.exit_code != 0:
+                logger.warning(
+                    "Optional @vitejs/plugin-react install failed: %s", plugin_result.stderr
+                )
+
             # Patch vite config to allow E2B sandbox hosts
             logger.info("Patching Vite config to allow E2B hosts...")
             patch_script = """\
@@ -161,8 +174,8 @@ for (const file of configs) {
                 cwd=app_dir,
             )
 
-            # Wait a moment for the server to start binding
-            await asyncio.sleep(3)
+            # Wait for the dev server to bind (Vite may need a few seconds to compile)
+            await asyncio.sleep(5)
 
             # Get the public URL for port 5173 (Vite default)
             host = await asyncio.to_thread(sandbox.get_host, 5173)

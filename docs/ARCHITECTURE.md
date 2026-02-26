@@ -25,7 +25,7 @@ Frontend UI (projects list, workspace, files, agent outputs, chat)
 
 It consists of:
 
-- **Backend** (`backend/`): FastAPI + LangChain + LangGraph + Gemini 3 Flash
+- **Backend** (`backend/`): FastAPI + LangChain + LangGraph + Gemini 3
 - **Frontend** (`frontend/`): Next.js 14 (App Router) + TypeScript + Tailwind CSS
 
 The backend orchestrates multi‑step LLM agents that design and generate codebases. The frontend lets users submit prompts, inspect pipeline progress, browse generated files, and iterate via chat.
@@ -35,24 +35,24 @@ The backend orchestrates multi‑step LLM agents that design and generate codeba
 ## 2. High‑Level Flow
 
 1. **User submits prompt**
-   - From the web UI or via `POST /api/v1/pipeline/run` or `/stream`.
-   - Optional auth flows (signin/signup) run via the frontend and backend `auth` layer.
+  - From the web UI or via `POST /api/v1/pipeline/run` or `/stream`.
+  - Optional auth flows (signin/signup) run via the frontend and backend `auth` layer.
 2. **Backend initializes a project & pipeline**
-   - Creates a new project entry and a pipeline run.
-   - Sets up initial pipeline state (prompt, config, IDs).
+  - Creates a new project entry and a pipeline run.
+  - Sets up initial pipeline state (prompt, config, IDs).
 3. **LangGraph orchestrates agents**
-   - **Manager**: turns the prompt into structured requirements.
-   - **Architect**: designs architecture and file structure.
-   - **Engineer**: generates concrete code and configuration files.
-   - **QA**: validates artifacts, writes tests, and provides feedback.
-   - Agents can optionally call into RAG (`app/rag/`) to ground reasoning in existing project artifacts.
+  - **Manager**: turns the prompt into structured requirements.
+  - **Architect**: designs architecture and file structure.
+  - **Engineer**: generates concrete code and configuration files.
+  - **QA**: validates artifacts, writes tests, and provides feedback.
+  - Agents can optionally call into RAG (`app/rag/`) to ground reasoning in existing project artifacts.
 4. **Artifacts are stored**
-   - Source files, project tree, and reasoning logs are written under a per‑project directory via `storage/`.
+  - Source files, project tree, and reasoning logs are written under a per‑project directory via `storage/`.
 5. **Frontend visualizes the result**
-   - Users see pipeline progress, agent outputs, file tree, code, and (when enabled) a live React preview.
+  - Users see pipeline progress, agent outputs, file tree, code, and (when enabled) a live React preview.
 6. **User iterates via chat**
-   - Chat messages go through `/api/v1/chat/{id}`, are stored by `chat_service`, and can trigger further pipeline activity.
-   - The UI and pipeline timeline update in real time as new events arrive.
+  - Chat messages go through `/api/v1/chat/{id}`, are stored by `chat_service`, and can trigger further pipeline activity.
+  - The UI and pipeline timeline update in real time as new events arrive.
 
 ---
 
@@ -181,7 +181,6 @@ The frontend calls these APIs exclusively through `lib/api.ts`, keeping contract
   - Start with `README.md` for a quick overview.
   - Read this `ARCHITECTURE.md` to understand how pieces fit together.
   - Use `docs/TECHNICAL_OVERVIEW.md` when you need file‑level detail or are modifying internals.
-
 - **Extending the system**
   - To add a new agent role, see the “Extensibility Guide” in `TECHNICAL_OVERVIEW.md`.
   - To change storage, add endpoints, or evolve the UI, follow the same guide and use the directories listed above as your starting points.
