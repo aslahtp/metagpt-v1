@@ -100,7 +100,9 @@ class PipelineService:
             # Stream through agents, persisting state after each one
             async for event in self.pipeline.stream(project_id, prompt, context):
                 node_name = event.get("node", "")
-                update = event.get("update", {})
+                update = event.get("update") or {}
+                if not update:
+                    continue
                 progress = update.get("progress", 0)
 
                 idx = agent_order.index(node_name) if node_name in agent_order else -1
@@ -200,7 +202,9 @@ class PipelineService:
         try:
             async for event in self.pipeline.stream(project_id, prompt, context):
                 node_name = event.get("node", "")
-                update = event.get("update", {})
+                update = event.get("update") or {}
+                if not update:
+                    continue
 
                 # Persist state before yielding so it's ready if frontend fetches
                 await self._persist_agent_output(project_id, node_name, update)
@@ -277,6 +281,8 @@ class PipelineService:
             "qa": PipelineStage.QA,
         }
 
+        if not update:
+            update = {}
         progress = update.get("progress", 0)
         stage = stage_map.get(agent, PipelineStage.PENDING)
 
