@@ -378,19 +378,55 @@ export async function indexProjectFiles(
 export interface SandboxInfo {
   sandbox_id: string | null;
   preview_url: string | null;
+  /** "pending" | "building" | "ready" | "error" | null */
+  status?: string | null;
   alive?: boolean;
+  error_message?: string | null;
 }
 
+/**
+ * Kick off sandbox creation (returns 202 immediately — sandbox is NOT yet ready).
+ * Use pollSandboxUntilReady() to wait for the preview URL.
+ */
 export async function createSandbox(projectId: string): Promise<SandboxInfo> {
   const res = await authFetch(`${API_BASE}/api/v1/sandbox/${projectId}/create`, {
     method: "POST",
   });
   if (res.status === 401) throw new Error("UNAUTHORIZED");
-  if (!res.ok) {
+  // 202 Accepted is the success case — sandbox is building in the background
+  if (res.status !== 202 && !res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || "Failed to create sandbox");
+    throw new Error(data.detail || "Failed to start sandbox creation");
   }
   return res.json();
+}
+
+/**
+ * Poll /status every `intervalMs` until the sandbox is ready or errors out.
+ * Rejects after `timeoutMs` (default 3 min).
+ */
+export async function pollSandboxUntilReady(
+  projectId: string,
+  options?: { intervalMs?: number; timeoutMs?: number }
+): Promise<SandboxInfo> {
+  const intervalMs = options?.intervalMs ?? 3_000;
+  const timeoutMs = options?.timeoutMs ?? 3 * 60 * 1_000;
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const info = await getSandboxStatus(projectId);
+
+    if (info.status === "ready" && info.preview_url) {
+      return info;
+    }
+    if (info.status === "error") {
+      throw new Error(info.error_message || "Sandbox creation failed");
+    }
+    // status is "pending" or "building" — keep waiting
+    await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error("Timed out waiting for sandbox to become ready");
 }
 
 export async function getSandboxStatus(projectId: string): Promise<SandboxInfo> {

@@ -1,4 +1,9 @@
-"""Sandbox management endpoints for E2B preview."""
+"""Sandbox management endpoints for E2B preview.
+
+/create   — non-blocking; returns 202 immediately and starts a background task.
+/status   — poll this until status == "ready" (or "error").
+/kill     — stop and destroy the sandbox.
+"""
 
 from typing import Any
 
@@ -7,11 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.auth import get_current_user
 from app.models.user import User
 from app.services import PipelineService
-from app.services.sandbox_service import SandboxService
+from app.services.sandbox_service import SandboxService, SandboxStatus
 
 router = APIRouter()
 
-# Shared service instance (keeps in-memory sandbox registry)
+# Shared service instance (keeps in-memory sandbox registry and background tasks)
 _sandbox_service = SandboxService()
 
 
@@ -35,17 +40,19 @@ async def _get_project_for_user(project_id: str, user: User):
     return project, service
 
 
-@router.post("/{project_id}/create")
+@router.post("/{project_id}/create", status_code=status.HTTP_202_ACCEPTED)
 async def create_sandbox(
     project_id: str,
     user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """
-    Create an E2B sandbox for live preview.
+    Kick off E2B sandbox creation in the background.
 
-    Writes all generated project files into the sandbox,
-    installs dependencies, starts the dev server, and returns
-    the public preview URL.
+    Returns **202 Accepted** immediately — the sandbox is NOT yet ready.
+    Poll ``GET /{project_id}/status`` until ``status == "ready"`` (or ``"error"``).
+
+    The full create flow (file writes + npm install + dev server) takes 60–120 s,
+    which exceeds Cloud Run's HTTP request deadline, so we never block on it.
     """
     project, service = await _get_project_for_user(project_id, user)
 
@@ -61,23 +68,18 @@ async def create_sandbox(
             detail="This project type does not support live preview.",
         )
 
-    # Build the file list from engineer output
     files = [
         {"file_path": f.file_path, "file_content": f.file_content}
         for f in project.state.engineer_output.files
     ]
 
-    try:
-        info = await _sandbox_service.create_sandbox(project_id, files)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create sandbox: {e}",
-        )
+    info = _sandbox_service.start_sandbox_creation(project_id, files)
 
     return {
+        "status": info.status,
         "sandbox_id": info.sandbox_id,
         "preview_url": info.preview_url,
+        "message": "Sandbox creation started. Poll /status for progress.",
     }
 
 
@@ -87,7 +89,14 @@ async def get_sandbox_status(
     user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """
-    Check if a sandbox is alive for the given project.
+    Poll the sandbox build status for a project.
+
+    Possible ``status`` values:
+    - ``"pending"``  — queued, not yet started
+    - ``"building"`` — installing deps / starting dev server
+    - ``"ready"``    — preview_url is live
+    - ``"error"``    — build failed; see ``error_message``
+    - ``null``       — no sandbox found for this project (``alive: false``)
     """
     await _get_project_for_user(project_id, user)
 
@@ -96,14 +105,18 @@ async def get_sandbox_status(
     if not info:
         return {
             "alive": False,
+            "status": None,
             "sandbox_id": None,
             "preview_url": None,
+            "error_message": None,
         }
 
     return {
-        "alive": True,
+        "alive": info.status == SandboxStatus.READY,
+        "status": info.status,
         "sandbox_id": info.sandbox_id,
         "preview_url": info.preview_url,
+        "error_message": info.error_message,
     }
 
 
@@ -113,12 +126,10 @@ async def kill_sandbox(
     user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """
-    Kill the sandbox for a project.
+    Kill the sandbox for a project (also cancels any in-progress build).
     """
     await _get_project_for_user(project_id, user)
 
     killed = await _sandbox_service.kill_sandbox(project_id)
 
-    return {
-        "killed": killed,
-    }
+    return {"killed": killed}

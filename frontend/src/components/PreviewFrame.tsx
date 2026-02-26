@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useProjectStore } from "@/lib/store";
-import { createSandbox, killSandbox } from "@/lib/api";
+import { createSandbox, pollSandboxUntilReady, killSandbox } from "@/lib/api";
 import {
   ExternalLink,
   RefreshCw,
@@ -51,6 +51,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const [iframeKey, setIframeKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [sandboxError, setSandboxError] = useState<string | null>(null);
+  const [sandboxBuildStatus, setSandboxBuildStatus] = useState<string>("Creating sandbox...");
   const [device, setDevice] = useState<DevicePreset>("responsive");
   const {
     previewInitialized,
@@ -200,13 +201,23 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     setSandboxError(null);
     setSandboxLoading(true);
     setIsLoading(true);
+    setSandboxBuildStatus("Starting sandbox...");
 
     try {
-      const info = await createSandbox(projectId);
-      if (info.preview_url) {
-        setSandboxUrl(info.preview_url);
-        setSandboxId(info.sandbox_id);
-        setPreviewUrl(info.preview_url);
+      // Step 1: kick off creation (returns 202 immediately)
+      await createSandbox(projectId);
+
+      // Step 2: poll until ready, updating the status label as we go
+      setSandboxBuildStatus("Building sandbox (installing dependencies)...");
+      const ready = await pollSandboxUntilReady(projectId, {
+        intervalMs: 4_000,
+        timeoutMs: 4 * 60 * 1_000,
+      });
+
+      if (ready.preview_url) {
+        setSandboxUrl(ready.preview_url);
+        setSandboxId(ready.sandbox_id);
+        setPreviewUrl(ready.preview_url);
         setPreviewInitialized(true);
         setIframeKey((k) => k + 1);
       }
@@ -217,6 +228,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
       setIsLoading(false);
     } finally {
       setSandboxLoading(false);
+      setSandboxBuildStatus("Creating sandbox...");
     }
   };
 
@@ -354,7 +366,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
                 {sandboxLoading ? (
                   <>
                     <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creating sandbox...
+                    {sandboxBuildStatus}
                   </>
                 ) : (
                   <>
@@ -401,7 +413,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
                   <div className="h-5 w-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
                   <span className="text-foreground-muted">
                     {sandboxLoading
-                      ? "Setting up sandbox (this may take a minute)..."
+                      ? sandboxBuildStatus
                       : "Loading preview..."}
                   </span>
                 </div>
