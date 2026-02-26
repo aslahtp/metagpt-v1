@@ -483,6 +483,7 @@ export interface SandboxInfo {
   status?: string | null;
   alive?: boolean;
   error_message?: string | null;
+  logs?: string[];
 }
 
 /**

@@ -117,6 +117,7 @@ async def get_sandbox_status(
         "sandbox_id": info.sandbox_id,
         "preview_url": info.preview_url,
         "error_message": info.error_message,
+        "logs": info.logs,
     }
 
 

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useProjectStore } from "@/lib/store";
-import { createSandbox, pollSandboxUntilReady, killSandbox } from "@/lib/api";
+import { createSandbox, pollSandboxUntilReady, killSandbox, getSandboxStatus } from "@/lib/api";
 import {
   ExternalLink,
   RefreshCw,
@@ -14,6 +14,9 @@ import {
   Maximize,
   XCircle,
   AlertCircle,
+  Terminal,
+  ChevronDown,
+  Trash2,
 } from "lucide-react";
 
 interface PreviewFrameProps {
@@ -46,6 +49,28 @@ const DEVICE_LABELS: Record<DevicePreset, string> = {
   desktop: "Desktop",
 };
 
+interface ConsoleLine {
+  level: "log" | "info" | "warn" | "error" | "build";
+  message: string;
+  timestamp: number;
+}
+
+const LEVEL_COLORS: Record<string, string> = {
+  log: "text-foreground-muted",
+  info: "text-blue-400",
+  warn: "text-yellow-400",
+  error: "text-red-400",
+  build: "text-foreground-subtle",
+};
+
+const LEVEL_PREFIX: Record<string, string> = {
+  log: "",
+  info: "ℹ ",
+  warn: "⚠ ",
+  error: "✕ ",
+  build: "▸ ",
+};
+
 export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const [previewUrl, setPreviewUrl] = useState("http://localhost:5173");
   const [iframeKey, setIframeKey] = useState(0);
@@ -53,6 +78,9 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const [sandboxError, setSandboxError] = useState<string | null>(null);
   const [sandboxBuildStatus, setSandboxBuildStatus] = useState<string>("Creating sandbox...");
   const [device, setDevice] = useState<DevicePreset>("responsive");
+  const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>([]);
+  const [consoleOpen, setConsoleOpen] = useState(false);
+  const consoleEndRef = useRef<HTMLDivElement>(null);
   const {
     previewInitialized,
     setPreviewInitialized,
@@ -62,12 +90,36 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     setSandboxId,
     sandboxLoading,
     setSandboxLoading,
+    sandboxLogs,
+    setSandboxLogs,
   } = useProjectStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
   const layoutMenuRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll console to bottom
+  useEffect(() => {
+    if (consoleOpen && consoleEndRef.current) {
+      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [consoleLines, consoleOpen]);
+
+  // Listen for browser console messages from the iframe (via postMessage bridge)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "__console_bridge__") {
+        const { level, message, timestamp } = event.data;
+        setConsoleLines((prev) => [
+          ...prev,
+          { level: level || "log", message: message || "", timestamp: timestamp || Date.now() },
+        ]);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   // Close layout menu when clicking outside
   useEffect(() => {
@@ -202,24 +254,53 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     setSandboxLoading(true);
     setIsLoading(true);
     setSandboxBuildStatus("Starting sandbox...");
+    setSandboxLogs([]);
+    setConsoleLines([]);
+    setConsoleOpen(true);
 
     try {
       // Step 1: kick off creation (returns 202 immediately)
       await createSandbox(projectId);
 
-      // Step 2: poll until ready, updating the status label as we go
+      // Step 2: poll until ready, updating the status + logs as we go
       setSandboxBuildStatus("Building sandbox (installing dependencies)...");
-      const ready = await pollSandboxUntilReady(projectId, {
-        intervalMs: 4_000,
-        timeoutMs: 4 * 60 * 1_000,
-      });
 
-      if (ready.preview_url) {
-        setSandboxUrl(ready.preview_url);
-        setSandboxId(ready.sandbox_id);
-        setPreviewUrl(ready.preview_url);
-        setPreviewInitialized(true);
-        setIframeKey((k) => k + 1);
+      const intervalMs = 4_000;
+      const timeoutMs = 4 * 60 * 1_000;
+      const deadline = Date.now() + timeoutMs;
+      let seenLogCount = 0;
+
+      while (Date.now() < deadline) {
+        const info = await getSandboxStatus(projectId);
+
+        // Update build logs
+        if (info.logs && info.logs.length > seenLogCount) {
+          const newLines = info.logs.slice(seenLogCount);
+          seenLogCount = info.logs.length;
+          setSandboxLogs(info.logs);
+          setConsoleLines((prev) => [
+            ...prev,
+            ...newLines.map((msg) => ({
+              level: "build" as const,
+              message: msg,
+              timestamp: Date.now(),
+            })),
+          ]);
+        }
+
+        if (info.status === "ready" && info.preview_url) {
+          setSandboxUrl(info.preview_url);
+          setSandboxId(info.sandbox_id);
+          setPreviewUrl(info.preview_url);
+          setPreviewInitialized(true);
+          setIframeKey((k) => k + 1);
+          break;
+        }
+        if (info.status === "error") {
+          throw new Error(info.error_message || "Sandbox creation failed");
+        }
+
+        await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
       }
     } catch (err) {
       const msg =
@@ -244,6 +325,9 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     setPreviewInitialized(false);
     setIsLoading(false);
   };
+
+  const errorCount = consoleLines.filter((l) => l.level === "error").length;
+  const warnCount = consoleLines.filter((l) => l.level === "warn").length;
 
   return (
     <div className="h-full w-full flex flex-col bg-background">
@@ -320,6 +404,33 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
         >
           <ExternalLink className="h-4 w-4 text-foreground-muted" />
         </button>
+        {/* Console toggle */}
+        <button
+          onClick={() => setConsoleOpen((o) => !o)}
+          className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+            consoleOpen
+              ? "bg-accent/10 text-accent"
+              : "text-foreground-muted hover:text-foreground hover:bg-background-tertiary"
+          }`}
+          title="Toggle console"
+        >
+          <Terminal className="h-3 w-3" />
+          Console
+          {(errorCount > 0 || warnCount > 0) && (
+            <span className="flex items-center gap-1 ml-1">
+              {errorCount > 0 && (
+                <span className="text-[10px] px-1 rounded bg-red-500/20 text-red-400">
+                  {errorCount}
+                </span>
+              )}
+              {warnCount > 0 && (
+                <span className="text-[10px] px-1 rounded bg-yellow-500/20 text-yellow-400">
+                  {warnCount}
+                </span>
+              )}
+            </span>
+          )}
+        </button>
         {sandboxId && (
           <button
             onClick={handleKillSandbox}
@@ -332,107 +443,161 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
         )}
       </div>
 
-      {/* Preview Area */}
-      <div
-        ref={containerRef}
-        className="flex-1 relative bg-white overflow-hidden"
-      >
-        {!previewInitialized ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-background-tertiary">
-            <div className="max-w-md text-center p-8">
-              <div className="w-16 h-16 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
-                <Cloud className="h-8 w-8 text-accent" />
-              </div>
-              <h3 className="text-lg font-medium mb-2">Preview Project</h3>
-              <p className="text-sm text-foreground-muted mb-6">
-                Launch a cloud sandbox to preview the generated project, or load
-                a local dev server URL.
-              </p>
+      {/* Preview Area + Console */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Preview Content */}
+        <div
+          ref={containerRef}
+          className={`relative bg-white overflow-hidden ${consoleOpen ? "flex-1 min-h-0" : "flex-1"}`}
+        >
+          {!previewInitialized ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-background-tertiary">
+              <div className="max-w-md text-center p-8">
+                <div className="w-16 h-16 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
+                  <Cloud className="h-8 w-8 text-accent" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">Preview Project</h3>
+                <p className="text-sm text-foreground-muted mb-6">
+                  Launch a cloud sandbox to preview the generated project, or load
+                  a local dev server URL.
+                </p>
 
-              {/* Sandbox error */}
-              {sandboxError && (
-                <div className="flex items-start gap-2 text-left bg-red-500/10 border border-red-500/20 p-3 rounded-lg mb-4">
-                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-400">{sandboxError}</p>
+                {/* Sandbox error */}
+                {sandboxError && (
+                  <div className="flex items-start gap-2 text-left bg-red-500/10 border border-red-500/20 p-3 rounded-lg mb-4">
+                    <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-400">{sandboxError}</p>
+                  </div>
+                )}
+
+                {/* Cloud preview button */}
+                <button
+                  onClick={handleLaunchSandbox}
+                  disabled={sandboxLoading}
+                  className="btn-primary w-full flex items-center justify-center gap-2 mb-3"
+                >
+                  {sandboxLoading ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {sandboxBuildStatus}
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="h-4 w-4" />
+                      Launch Cloud Preview
+                    </>
+                  )}
+                </button>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-foreground-subtle">or</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                {/* Local preview option */}
+                <button
+                  onClick={handleLoadManual}
+                  className="btn-ghost w-full text-sm flex items-center justify-center gap-2"
+                >
+                  <Play className="h-4 w-4" />
+                  Load from localhost
+                </button>
+
+                <p className="text-xs text-foreground-subtle mt-4">
+                  Cloud preview powered by{" "}
+                  <a
+                    href="https://e2b.dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent hover:underline"
+                  >
+                    E2B
+                  </a>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background-tertiary/80 z-10">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-5 w-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
+                    <span className="text-foreground-muted">
+                      {sandboxLoading
+                        ? sandboxBuildStatus
+                        : "Loading preview..."}
+                    </span>
+                  </div>
                 </div>
               )}
-
-              {/* Cloud preview button */}
-              <button
-                onClick={handleLaunchSandbox}
-                disabled={sandboxLoading}
-                className="btn-primary w-full flex items-center justify-center gap-2 mb-3"
-              >
-                {sandboxLoading ? (
-                  <>
-                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    {sandboxBuildStatus}
-                  </>
-                ) : (
-                  <>
-                    <Cloud className="h-4 w-4" />
-                    Launch Cloud Preview
-                  </>
-                )}
-              </button>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-foreground-subtle">or</span>
-                <div className="flex-1 h-px bg-border" />
+              <div style={getWrapperStyle()}>
+                <iframe
+                  key={iframeKey}
+                  src={previewUrl}
+                  style={getIframeStyle()}
+                  title="Project Preview"
+                  onLoad={handleLoad}
+                  onError={() => setIsLoading(false)}
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                />
               </div>
+            </>
+          )}
+        </div>
 
-              {/* Local preview option */}
+        {/* Console Panel */}
+        {consoleOpen && (
+          <div className="border-t border-border flex flex-col bg-background" style={{ height: "200px" }}>
+            {/* Console Header */}
+            <div className="h-8 border-b border-border flex items-center px-3 gap-2 shrink-0 bg-background-secondary">
+              <Terminal className="h-3 w-3 text-foreground-subtle" />
+              <span className="text-xs font-medium text-foreground-muted">Console</span>
+              <span className="text-[10px] text-foreground-subtle">
+                {consoleLines.length} {consoleLines.length === 1 ? "message" : "messages"}
+              </span>
+              <div className="flex-1" />
               <button
-                onClick={handleLoadManual}
-                className="btn-ghost w-full text-sm flex items-center justify-center gap-2"
+                onClick={() => setConsoleLines([])}
+                className="p-1 rounded hover:bg-background-tertiary transition-colors"
+                title="Clear console"
               >
-                <Play className="h-4 w-4" />
-                Load from localhost
+                <Trash2 className="h-3 w-3 text-foreground-subtle" />
               </button>
-
-              <p className="text-xs text-foreground-subtle mt-4">
-                Cloud preview powered by{" "}
-                <a
-                  href="https://e2b.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent hover:underline"
-                >
-                  E2B
-                </a>
-              </p>
+              <button
+                onClick={() => setConsoleOpen(false)}
+                className="p-1 rounded hover:bg-background-tertiary transition-colors"
+                title="Close console"
+              >
+                <ChevronDown className="h-3 w-3 text-foreground-subtle" />
+              </button>
+            </div>
+            {/* Console Content */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden font-mono text-xs p-2 space-y-px scrollbar-auto-hide">
+              {consoleLines.length === 0 ? (
+                <div className="text-foreground-subtle italic text-center py-4">
+                  No console output yet
+                </div>
+              ) : (
+                consoleLines.map((line, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-start gap-1.5 px-1 py-0.5 rounded hover:bg-background-secondary/50 ${LEVEL_COLORS[line.level] || "text-foreground-muted"}`}
+                  >
+                    <span className="shrink-0 w-3 text-center select-none opacity-60">
+                      {LEVEL_PREFIX[line.level] || ""}
+                    </span>
+                    <span className="whitespace-pre-wrap break-all">{line.message}</span>
+                  </div>
+                ))
+              )}
+              <div ref={consoleEndRef} />
             </div>
           </div>
-        ) : (
-          <>
-            {isLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background-tertiary/80 z-10">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-5 w-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-                  <span className="text-foreground-muted">
-                    {sandboxLoading
-                      ? sandboxBuildStatus
-                      : "Loading preview..."}
-                  </span>
-                </div>
-              </div>
-            )}
-            <div style={getWrapperStyle()}>
-              <iframe
-                key={iframeKey}
-                src={previewUrl}
-                style={getIframeStyle()}
-                title="Project Preview"
-                onLoad={handleLoad}
-                onError={() => setIsLoading(false)}
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-              />
-            </div>
-          </>
         )}
       </div>
     </div>
   );
 }
+

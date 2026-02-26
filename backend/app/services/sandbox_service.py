@@ -15,6 +15,7 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
+from textwrap import dedent
 
 from app.config import get_settings
 
@@ -36,6 +37,7 @@ class SandboxInfo:
     project_id: str
     status: SandboxStatus = SandboxStatus.PENDING
     error_message: str | None = None
+    logs: list[str] = field(default_factory=list)
 
 
 class SandboxService:
@@ -176,7 +178,22 @@ class SandboxService:
 
             app_dir = "/home/user/app"
 
+            def _log(line: str) -> None:
+                """Append a log line and mirror to logger."""
+                info.logs.append(line)
+                logger.info("[sandbox:%s] %s", project_id, line)
+
+            def _capture(prefix: str, result: object) -> None:
+                """Capture stdout/stderr from a command result."""
+                stdout = getattr(result, "stdout", "") or ""
+                stderr = getattr(result, "stderr", "") or ""
+                for line in stdout.strip().splitlines():
+                    _log(f"[{prefix}] {line}")
+                for line in stderr.strip().splitlines():
+                    _log(f"[{prefix}:err] {line}")
+
             # ── 1. Create directories ──
+            _log("[setup] Creating project directories…")
             dirs_to_create: set[str] = set()
             for f in files:
                 fpath = f["file_path"].lstrip("/")
@@ -191,6 +208,7 @@ class SandboxService:
                 await asyncio.to_thread(sandbox.commands.run, mkdir_cmd)
 
             # ── 2. Write files ──
+            _log(f"[setup] Writing {len(files)} files…")
             for f in files:
                 fpath = f["file_path"].lstrip("/")
                 full_path = f"{app_dir}/{fpath}"
@@ -198,16 +216,21 @@ class SandboxService:
                     sandbox.files.write, full_path, f["file_content"]
                 )
 
-            logger.info("Wrote %d files to sandbox %s", len(files), sandbox_id)
+            _log(f"[setup] Wrote {len(files)} files to sandbox")
+
+            # ── 2b. Inject console bridge script ──
+            _log("[setup] Injecting console bridge…")
+            await self._inject_console_bridge(sandbox, app_dir)
 
             # ── 3. npm install ──
-            logger.info("Running npm install in sandbox %s …", sandbox_id)
+            _log("[npm install] Running npm install…")
             install_result = await asyncio.to_thread(
                 sandbox.commands.run,
                 "npm install",
                 cwd=app_dir,
                 timeout=None,
             )
+            _capture("npm install", install_result)
             if install_result.exit_code != 0:
                 raise RuntimeError(
                     f"npm install failed (exit {install_result.exit_code}): "
@@ -215,13 +238,14 @@ class SandboxService:
                 )
 
             # ── 4. Ensure Vite React plugin ──
-            logger.info("Ensuring @vitejs/plugin-react in sandbox %s …", sandbox_id)
+            _log("[plugin] Installing @vitejs/plugin-react…")
             plugin_result = await asyncio.to_thread(
                 sandbox.commands.run,
                 "npm install @vitejs/plugin-react --save-dev",
                 cwd=app_dir,
                 timeout=120,
             )
+            _capture("plugin", plugin_result)
             if plugin_result.exit_code != 0:
                 logger.warning(
                     "Optional @vitejs/plugin-react install failed: %s",
@@ -229,7 +253,7 @@ class SandboxService:
                 )
 
             # ── 5. Patch Vite config to allow E2B hosts ──
-            logger.info("Patching Vite config in sandbox %s …", sandbox_id)
+            _log("[vite] Patching Vite config…")
             patch_script = """\
 const fs = require('fs');
 const configs = ['vite.config.ts', 'vite.config.js', 'vite.config.mts', 'vite.config.mjs'];
@@ -250,12 +274,13 @@ for (const file of configs) {
             await asyncio.to_thread(
                 sandbox.files.write, f"{app_dir}/patch-vite.cjs", patch_script
             )
-            await asyncio.to_thread(
+            patch_result = await asyncio.to_thread(
                 sandbox.commands.run, "node patch-vite.cjs", cwd=app_dir
             )
+            _capture("vite", patch_result)
 
             # ── 6. Start dev server ──
-            logger.info("Starting dev server in sandbox %s …", sandbox_id)
+            _log("[dev] Starting dev server…")
             await asyncio.to_thread(
                 sandbox.commands.run,
                 "npm run dev -- --host 0.0.0.0",
@@ -271,6 +296,7 @@ for (const file of configs) {
 
             info.preview_url = preview_url
             info.status = SandboxStatus.READY
+            _log(f"[ready] Preview available at {preview_url}")
 
             logger.info(
                 "Sandbox %s ready for project %s at %s",
@@ -297,6 +323,92 @@ for (const file of configs) {
                     await asyncio.to_thread(s.kill)
                 except Exception:
                     pass
+
+    async def _inject_console_bridge(self, sandbox: object, app_dir: str) -> None:
+        """
+        Write a console-bridge script that patches console.* and
+        window.onerror to forward messages to the parent frame via
+        postMessage.  Then patch index.html to include it.
+        """
+        bridge_js = dedent("""\
+            (function() {
+              if (window.__consoleBridgeInstalled) return;
+              window.__consoleBridgeInstalled = true;
+
+              var _origLog   = console.log;
+              var _origWarn  = console.warn;
+              var _origError = console.error;
+              var _origInfo  = console.info;
+
+              function _send(level, args) {
+                try {
+                  var parts = [];
+                  for (var i = 0; i < args.length; i++) {
+                    try {
+                      parts.push(typeof args[i] === 'object' ? JSON.stringify(args[i]) : String(args[i]));
+                    } catch(e) {
+                      parts.push('[unserializable]');
+                    }
+                  }
+                  window.parent.postMessage({
+                    type: '__console_bridge__',
+                    level: level,
+                    message: parts.join(' '),
+                    timestamp: Date.now()
+                  }, '*');
+                } catch(e) { /* ignore */ }
+              }
+
+              console.log   = function() { _send('log',   arguments); _origLog.apply(console, arguments); };
+              console.warn  = function() { _send('warn',  arguments); _origWarn.apply(console, arguments); };
+              console.error = function() { _send('error', arguments); _origError.apply(console, arguments); };
+              console.info  = function() { _send('info',  arguments); _origInfo.apply(console, arguments); };
+
+              window.onerror = function(msg, src, line, col, err) {
+                _send('error', ['Uncaught: ' + msg + ' at ' + src + ':' + line + ':' + col]);
+              };
+              window.addEventListener('unhandledrejection', function(e) {
+                _send('error', ['Unhandled rejection: ' + (e.reason || e)]);
+              });
+            })();
+        """)
+
+        await asyncio.to_thread(
+            sandbox.files.write,
+            f"{app_dir}/public/__console_bridge.js",
+            bridge_js,
+        )
+
+        # Patch index.html to include the script early
+        patch_html_script = dedent("""\
+            const fs = require('fs');
+            const path = require('path');
+            const htmlPath = path.join(process.cwd(), 'index.html');
+            try {
+              let html = fs.readFileSync(htmlPath, 'utf8');
+              if (!html.includes('__console_bridge')) {
+                html = html.replace(
+                  '<head>',
+                  '<head><script src="/__console_bridge.js"></script>'
+                );
+                fs.writeFileSync(htmlPath, html);
+                console.log('Injected console bridge into index.html');
+              }
+            } catch(e) {
+              console.log('Could not patch index.html:', e.message);
+            }
+        """)
+
+        await asyncio.to_thread(
+            sandbox.files.write,
+            f"{app_dir}/inject-bridge.cjs",
+            patch_html_script,
+        )
+        await asyncio.to_thread(
+            sandbox.commands.run,
+            "node inject-bridge.cjs",
+            cwd=app_dir,
+        )
 
     async def _ping_sandbox(self, sandbox_id: str) -> bool:
         """Return True if the sandbox is still alive."""

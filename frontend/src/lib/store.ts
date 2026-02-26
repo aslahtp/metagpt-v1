@@ -93,6 +93,9 @@ interface ProjectStore {
   setSandboxId: (id: string | null) => void;
   sandboxLoading: boolean;
   setSandboxLoading: (loading: boolean) => void;
+  sandboxLogs: string[];
+  setSandboxLogs: (logs: string[]) => void;
+  addSandboxLog: (log: string) => void;
 
   // Editor theme
   editorTheme: string;
@@ -186,6 +189,10 @@ export const useProjectStore = create<ProjectStore>((set) => ({
   setSandboxId: (id) => set({ sandboxId: id }),
   sandboxLoading: false,
   setSandboxLoading: (loading) => set({ sandboxLoading: loading }),
+  sandboxLogs: [],
+  setSandboxLogs: (logs) => set({ sandboxLogs: logs }),
+  addSandboxLog: (log) =>
+    set((state) => ({ sandboxLogs: [...state.sandboxLogs, log] })),
 
   // Editor theme (persisted to localStorage)
   editorTheme: getStoredTheme(),
@@ -243,5 +250,6 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       sandboxUrl: null,
       sandboxId: null,
       sandboxLoading: false,
+      sandboxLogs: [],
     }),
 }));
