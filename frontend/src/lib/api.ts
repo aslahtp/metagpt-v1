@@ -228,30 +228,114 @@ export async function getFileContent(
   return res.json();
 }
 
-export async function sendChatMessage(
-  projectId: string,
-  message: string,
-  model?: string | null
-): Promise<{
+export interface ChatResponse {
   message: ChatMessage;
   agents_executed: string[];
   files_modified: string[];
   files_referenced: string[];
   project_updated: boolean;
   indexing_status?: string;
-}> {
+}
+
+/**
+ * Send a chat message and receive the response via SSE stream.
+ *
+ * The backend emits:
+ *   event: thinking  — keepalive heartbeats (ignored here)
+ *   event: done      — final ChatResponse JSON
+ *   event: error     — error detail string
+ *
+ * This avoids Cloud Run's 30 s HTTP timeout that killed the old plain POST.
+ */
+export async function sendChatMessage(
+  projectId: string,
+  message: string,
+  model?: string | null
+): Promise<ChatResponse> {
   const body: Record<string, unknown> = { message };
-  if (model) {
-    body.model = model;
-  }
+  if (model) body.model = model;
+
   const res = await authFetch(`${API_BASE}/api/v1/chat/${projectId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(body),
   });
+
   if (res.status === 401) throw new Error("UNAUTHORIZED");
-  if (!res.ok) throw new Error("Failed to send message");
-  return res.json();
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { detail?: string }).detail || "Failed to send message");
+  }
+  if (!res.body) throw new Error("No response body");
+
+  // Parse the SSE stream and resolve on the first `done` event
+  return new Promise<ChatResponse>((resolve, reject) => {
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    const pump = async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            reject(new Error("Stream ended without a done event"));
+            return;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+
+          for (const part of parts) {
+            if (!part.trim()) continue;
+
+            let eventType = "message";
+            const dataLines: string[] = [];
+
+            for (const line of part.split("\n")) {
+              if (line.startsWith("event:")) {
+                eventType = line.slice(6).trim();
+              } else if (line.startsWith("data:")) {
+                dataLines.push(line.slice(5).trim());
+              }
+            }
+
+            if (dataLines.length === 0) continue;
+            const rawData = dataLines.join("\n");
+
+            if (eventType === "thinking") {
+              // Keepalive — ignore
+              continue;
+            }
+
+            if (eventType === "done") {
+              try {
+                resolve(JSON.parse(rawData) as ChatResponse);
+              } catch {
+                reject(new Error("Failed to parse chat response"));
+              }
+              return;
+            }
+
+            if (eventType === "error") {
+              try {
+                const err = JSON.parse(rawData) as { detail?: string };
+                reject(new Error(err.detail || "Chat error"));
+              } catch {
+                reject(new Error(rawData));
+              }
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error("Stream error"));
+      }
+    };
+
+    pump();
+  });
 }
 
 export async function getPipelineArtifacts(

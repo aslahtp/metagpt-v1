@@ -1,13 +1,25 @@
-"""Chat endpoints for iterative project updates."""
+"""Chat endpoints for iterative project updates.
 
+The main POST /{project_id} endpoint uses Server-Sent Events (SSE) so that
+the response stream keeps the Cloud Run HTTP connection alive while the LLM
+processes the request (which can take 30–120 s for large projects).
+
+SSE event types emitted:
+  thinking  — keepalive heartbeats while work is in progress
+  done      — final ChatResponse payload (JSON)
+  error     — error message (string)
+"""
+
+import json
 import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sse_starlette.sse import EventSourceResponse
 
 from app.auth import get_current_user
 from app.models.user import User
-from app.schemas.projects import ChatMessage, ChatRequest, ChatResponse
+from app.schemas.projects import ChatRequest, ChatResponse
 from app.services import ChatService, PipelineService
 
 logger = logging.getLogger(__name__)
@@ -35,36 +47,81 @@ async def _verify_project_owner(project_id: str, user: User):
     return project
 
 
-@router.post("/{project_id}", response_model=ChatResponse)
+@router.post("/{project_id}")
 async def send_chat_message(
     project_id: str,
     request: ChatRequest,
     user: User = Depends(get_current_user),
-) -> ChatResponse:
+):
     """
-    Send a chat message to update a project.
+    Send a chat message and stream the response via SSE.
+
+    The endpoint returns a ``text/event-stream`` response that emits:
+    - ``event: thinking`` — periodic keepalive during LLM processing
+    - ``event: done``     — the full ``ChatResponse`` JSON when complete
+    - ``event: error``    — error detail string on failure
+
+    This avoids Cloud Run's 30 s HTTP request timeout by keeping the
+    connection alive with heartbeat events while the LLM generates.
     """
     await _verify_project_owner(project_id, user)
 
-    service = ChatService()
+    async def event_generator():
+        import asyncio
 
-    try:
-        logger.info(f"Chat request for project {project_id}: {request.message[:80]}")
-        response = await service.process_message(project_id, request)
-        logger.info(f"Chat response: {len(response.files_modified)} files modified")
-        return response
-    except ValueError as e:
-        logger.error(f"Chat ValueError: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+        service = ChatService()
+
+        logger.info(
+            "Chat SSE stream started for project %s: %s",
+            project_id,
+            request.message[:80],
         )
-    except Exception as e:
-        logger.error(f"Chat error: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing chat message: {str(e)}",
+
+        # Run the blocking chat work as an asyncio task so we can send
+        # keepalive events while it's in-progress.
+        task = asyncio.create_task(
+            service.process_message(project_id, request)
         )
+
+        # Send a keepalive heartbeat every 10 s while the task runs.
+        # SSE over HTTP/1.1 through Cloud Run / nginx proxies will drop
+        # idle connections; frequent small frames prevent that.
+        heartbeat_interval = 10
+        elapsed = 0
+        while not task.done():
+            await asyncio.sleep(1)
+            elapsed += 1
+            if elapsed % heartbeat_interval == 0:
+                yield {
+                    "event": "thinking",
+                    "data": json.dumps({"elapsed_s": elapsed}),
+                }
+
+        # Task finished — check for exception
+        exc = task.exception()
+        if exc is not None:
+            logger.error(
+                "Chat task failed for project %s: %s", project_id, exc
+            )
+            detail = str(exc)
+            yield {
+                "event": "error",
+                "data": json.dumps({"detail": detail}),
+            }
+            return
+
+        response: ChatResponse = task.result()
+        logger.info(
+            "Chat SSE done for project %s: %d files modified",
+            project_id,
+            len(response.files_modified),
+        )
+        yield {
+            "event": "done",
+            "data": response.model_dump_json(),
+        }
+
+    return EventSourceResponse(event_generator())
 
 
 @router.get("/{project_id}/history")
