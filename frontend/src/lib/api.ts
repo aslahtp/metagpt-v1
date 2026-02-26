@@ -273,13 +273,17 @@ export async function sendChatMessage(
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let settled = false;
 
     const pump = async () => {
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
-            reject(new Error("Stream ended without a done event"));
+            // Stream closed — only reject if we never got a `done` event
+            if (!settled) {
+              reject(new Error("Stream ended without a done event"));
+            }
             return;
           }
 
@@ -311,6 +315,7 @@ export async function sendChatMessage(
 
             if (eventType === "done") {
               try {
+                settled = true;
                 resolve(JSON.parse(rawData) as ChatResponse);
               } catch {
                 reject(new Error("Failed to parse chat response"));
