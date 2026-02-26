@@ -1,6 +1,6 @@
 [project]
 name = "metagpt"
-version = "0.1.0"
+version = "1.0.0"
 description = "MetaGPT-style agentic system with SOP-driven autonomous agents"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -9,9 +9,9 @@ dependencies = [
     "uvicorn[standard]>=0.27.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
-    "langchain>=0.1.0",
-    "langchain-google-genai>=1.0.0",
-    "langgraph>=0.0.20",
+    "langchain>=1.2.10",
+    "langchain-google-genai>=4.2.1",
+    "langgraph>=1.0.9",
     "python-multipart>=0.0.6",
     "aiofiles>=23.2.1",
     "sse-starlette>=1.8.0",

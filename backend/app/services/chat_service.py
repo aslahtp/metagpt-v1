@@ -87,6 +87,7 @@ class ChatService:
     def _create_llm(self, model: str | None = None):
         """Create an LLM instance with a generous timeout for chat."""
         from langchain_google_genai import ChatGoogleGenerativeAI
+        import httpx
 
         return ChatGoogleGenerativeAI(
             model=model or self.settings.llm_model,
@@ -95,6 +96,7 @@ class ChatService:
             temperature=0.3,
             convert_system_message_to_human=True,
             model_kwargs={"response_mime_type": "application/json"},
+            client_args={"timeout": httpx.Timeout(300.0)},
         )
 
     async def process_message(
@@ -261,7 +263,8 @@ class ChatService:
         file_context: str,
         all_file_paths: list[str],
     ) -> dict[str, Any]:
-        """Make a single LLM call to get targeted file edits."""
+        """Make a single LLM call to get targeted file edits, with retries."""
+        import asyncio
 
         prompt = CHAT_EDIT_PROMPT.format(
             message=message,
@@ -271,34 +274,51 @@ class ChatService:
 
         logger.info("Calling LLM for targeted edits...")
 
-        try:
-            response = await self.llm.ainvoke([HumanMessage(content=prompt)])
-            raw = response.content
-            # Gemini may return content as a list of parts
-            if isinstance(raw, list):
-                content = "".join(
-                    part if isinstance(part, str) else part.get("text", "")
-                    for part in raw
-                ).strip()
-            else:
-                content = raw.strip()
+        max_retries = 3
+        last_error: Exception | None = None
 
-            # Try multiple strategies to extract JSON from the response
-            result = self._extract_json(content)
-            if result is not None:
-                files_count = len(result.get("files", []))
-                logger.info(f"LLM returned {files_count} files to update")
-                return result
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = await self.llm.ainvoke([HumanMessage(content=prompt)])
+                raw = response.content
+                # Gemini may return content as a list of parts
+                if isinstance(raw, list):
+                    content = "".join(
+                        part if isinstance(part, str) else part.get("text", "")
+                        for part in raw
+                    ).strip()
+                else:
+                    content = raw.strip()
 
-            logger.error(f"Failed to extract JSON from LLM response")
-            logger.error(f"Raw response: {content[:500]}")
-            return {
-                "summary": "Failed to parse the response. Please try again.",
-                "files": [],
-            }
-        except Exception as e:
-            logger.error(f"LLM call failed: {e}", exc_info=True)
-            return {"summary": f"Error: {str(e)}", "files": []}
+                # Try multiple strategies to extract JSON from the response
+                result = self._extract_json(content)
+                if result is not None:
+                    files_count = len(result.get("files", []))
+                    logger.info(f"LLM returned {files_count} files to update")
+                    return result
+
+                logger.error(f"Failed to extract JSON from LLM response")
+                logger.error(f"Raw response: {content[:500]}")
+                return {
+                    "summary": "Failed to parse the response. Please try again.",
+                    "files": [],
+                }
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries:
+                    delay = 2 ** attempt  # 2s, 4s
+                    logger.warning(
+                        f"LLM call attempt {attempt}/{max_retries} failed: {e}. "
+                        f"Retrying in {delay}s..."
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(
+                        f"LLM call failed after {max_retries} attempts: {e}",
+                        exc_info=True,
+                    )
+
+        return {"summary": f"Error: {str(last_error)}", "files": []}
 
     def _extract_json(self, text: str) -> dict[str, Any] | None:
         """

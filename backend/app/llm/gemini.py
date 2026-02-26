@@ -55,6 +55,7 @@ def get_llm(
         "google_api_key": settings.google_api_key,
         "timeout": settings.llm_timeout,
         "convert_system_message_to_human": True,
+        "client_args": {"timeout": __import__("httpx").Timeout(float(settings.llm_timeout))},
     }
 
     if resolved_temp is not None:

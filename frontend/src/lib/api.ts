@@ -275,12 +275,61 @@ export async function sendChatMessage(
     let buffer = "";
     let settled = false;
 
+    /** Parse a single SSE frame (event + data lines). Returns true if terminal. */
+    const processSSEPart = (part: string): boolean => {
+      if (!part.trim()) return false;
+
+      let eventType = "message";
+      const dataLines: string[] = [];
+
+      for (const line of part.split("\n")) {
+        const trimmedLine = line.replace(/\r$/, ""); // strip any trailing CR
+        if (trimmedLine.startsWith("event:")) {
+          eventType = trimmedLine.slice(6).trim();
+        } else if (trimmedLine.startsWith("data:")) {
+          dataLines.push(trimmedLine.slice(5).trim());
+        }
+        // Ignore id:, retry:, and comment lines (starting with :)
+      }
+
+
+      if (dataLines.length === 0) return false;
+      const rawData = dataLines.join("\n");
+
+      if (eventType === "thinking") return false;
+
+      if (eventType === "done") {
+        try {
+          settled = true;
+          resolve(JSON.parse(rawData) as ChatResponse);
+        } catch {
+          reject(new Error("Failed to parse chat response"));
+        }
+        return true;
+      }
+
+      if (eventType === "error") {
+        try {
+          const err = JSON.parse(rawData) as { detail?: string };
+          reject(new Error(err.detail || "Chat error"));
+        } catch {
+          reject(new Error(rawData));
+        }
+        return true;
+      }
+
+      return false;
+    };
+
     const pump = async () => {
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
-            // Stream closed — only reject if we never got a `done` event
+            // Stream closed — process any remaining buffer before giving up
+            if (!settled && buffer.trim()) {
+              processSSEPart(buffer);
+            }
             if (!settled) {
               reject(new Error("Stream ended without a done event"));
             }
@@ -288,50 +337,13 @@ export async function sendChatMessage(
           }
 
           buffer += decoder.decode(value, { stream: true });
+          // Normalize \r\n → \n so the split works for both CRLF and LF
+          buffer = buffer.replace(/\r\n/g, "\n");
           const parts = buffer.split("\n\n");
           buffer = parts.pop() ?? "";
 
           for (const part of parts) {
-            if (!part.trim()) continue;
-
-            let eventType = "message";
-            const dataLines: string[] = [];
-
-            for (const line of part.split("\n")) {
-              if (line.startsWith("event:")) {
-                eventType = line.slice(6).trim();
-              } else if (line.startsWith("data:")) {
-                dataLines.push(line.slice(5).trim());
-              }
-            }
-
-            if (dataLines.length === 0) continue;
-            const rawData = dataLines.join("\n");
-
-            if (eventType === "thinking") {
-              // Keepalive — ignore
-              continue;
-            }
-
-            if (eventType === "done") {
-              try {
-                settled = true;
-                resolve(JSON.parse(rawData) as ChatResponse);
-              } catch {
-                reject(new Error("Failed to parse chat response"));
-              }
-              return;
-            }
-
-            if (eventType === "error") {
-              try {
-                const err = JSON.parse(rawData) as { detail?: string };
-                reject(new Error(err.detail || "Chat error"));
-              } catch {
-                reject(new Error(rawData));
-              }
-              return;
-            }
+            if (processSSEPart(part)) return;
           }
         }
       } catch (err) {
