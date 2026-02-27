@@ -178,6 +178,50 @@ class SandboxService:
 
             app_dir = "/home/user/app"
 
+            # Detect frontend / backend roots from the incoming files.
+            # We keep writing all files under app_dir but run npm commands
+            # from the detected frontend directory.
+            def _detect_roots() -> tuple[str, str | None]:
+                package_json_paths: list[str] = []
+                for f in files:
+                    fpath = f["file_path"].lstrip("/")
+                    if fpath.endswith("package.json"):
+                        package_json_paths.append(fpath)
+
+                frontend_candidates = ["frontend/package.json", "client/package.json", "web/package.json"]
+
+                frontend_rel_dir = "."
+                backend_rel_dir: str | None = None
+
+                # Single-root app at repo root
+                if "package.json" in package_json_paths:
+                    frontend_rel_dir = "."
+                    # Prefer backend/ or server/ package.json as backend if present
+                    if "backend/package.json" in package_json_paths:
+                        backend_rel_dir = "backend"
+                    elif "server/package.json" in package_json_paths:
+                        backend_rel_dir = "server"
+                else:
+                    # No root package.json – look for conventional frontend folder first
+                    chosen_frontend: str | None = None
+                    for candidate in frontend_candidates:
+                        if candidate in package_json_paths:
+                            chosen_frontend = candidate
+                            break
+                    if chosen_frontend:
+                        frontend_rel_dir = chosen_frontend.split("/")[0]
+                    elif len(package_json_paths) == 1:
+                        # Fallback: exactly one package.json somewhere
+                        frontend_rel_dir = package_json_paths[0].split("/")[0]
+
+                    # For backend, prefer backend/ or server/ if present
+                    if "backend/package.json" in package_json_paths:
+                        backend_rel_dir = "backend"
+                    elif "server/package.json" in package_json_paths:
+                        backend_rel_dir = "server"
+
+                return frontend_rel_dir, backend_rel_dir
+
             def _log(line: str) -> None:
                 """Append a log line and mirror to logger."""
                 info.logs.append(line)
@@ -191,6 +235,16 @@ class SandboxService:
                     _log(f"[{prefix}] {line}")
                 for line in stderr.strip().splitlines():
                     _log(f"[{prefix}:err] {line}")
+
+            # Detect frontend/backend roots now that helpers are defined
+            frontend_rel_dir, backend_rel_dir = _detect_roots()
+            frontend_cwd = f"{app_dir}/{frontend_rel_dir}" if frontend_rel_dir != "." else app_dir
+            if frontend_rel_dir != ".":
+                _log(f"[setup] Detected frontend at {frontend_rel_dir}/")
+            else:
+                _log("[setup] Detected single-root frontend at project root")
+            if backend_rel_dir:
+                _log(f"[setup] Detected backend candidate at {backend_rel_dir}/")
 
             # ── 1. Create directories ──
             _log("[setup] Creating project directories…")
@@ -220,14 +274,16 @@ class SandboxService:
 
             # ── 2b. Inject console bridge script ──
             _log("[setup] Injecting console bridge…")
-            await self._inject_console_bridge(sandbox, app_dir)
+            # Use the detected frontend root so the bridge is injected
+            # into the actual app that the iframe renders.
+            await self._inject_console_bridge(sandbox, frontend_cwd)
 
             # ── 3. npm install ──
             _log("[npm install] Running npm install…")
             install_result = await asyncio.to_thread(
                 sandbox.commands.run,
                 "npm install",
-                cwd=app_dir,
+                cwd=frontend_cwd,
                 timeout=None,
             )
             _capture("npm install", install_result)
@@ -242,7 +298,7 @@ class SandboxService:
             plugin_result = await asyncio.to_thread(
                 sandbox.commands.run,
                 "npm install @vitejs/plugin-react --save-dev",
-                cwd=app_dir,
+                cwd=frontend_cwd,
                 timeout=120,
             )
             _capture("plugin", plugin_result)
@@ -272,10 +328,10 @@ for (const file of configs) {
 }
 """
             await asyncio.to_thread(
-                sandbox.files.write, f"{app_dir}/patch-vite.cjs", patch_script
+                sandbox.files.write, f"{frontend_cwd}/patch-vite.cjs", patch_script
             )
             patch_result = await asyncio.to_thread(
-                sandbox.commands.run, "node patch-vite.cjs", cwd=app_dir
+                sandbox.commands.run, "node patch-vite.cjs", cwd=frontend_cwd
             )
             _capture("vite", patch_result)
 
@@ -285,8 +341,46 @@ for (const file of configs) {
                 sandbox.commands.run,
                 "npm run dev -- --host 0.0.0.0",
                 background=True,
-                cwd=app_dir,
+                cwd=frontend_cwd,
             )
+
+            # ── 6b. Optional backend start (best-effort, does not affect preview_url) ──
+            if backend_rel_dir:
+                backend_cwd = f"{app_dir}/{backend_rel_dir}"
+                _log(f"[backend] Installing backend dependencies in {backend_rel_dir}/ …")
+                try:
+                    backend_install = await asyncio.to_thread(
+                        sandbox.commands.run,
+                        "npm install",
+                        cwd=backend_cwd,
+                        timeout=None,
+                    )
+                    _capture("backend:npm install", backend_install)
+                    if backend_install.exit_code != 0:
+                        _log(
+                            "[backend:error] npm install failed; backend may not be available "
+                            f"(exit {backend_install.exit_code})"
+                        )
+                    else:
+                        # Try dev or start script
+                        _log(
+                            "[backend] Starting backend dev server (npm run dev || npm start) in background…"
+                        )
+                        # Prefer npm run dev, but fall back to npm start if that fails.
+                        backend_dev = await asyncio.to_thread(
+                            sandbox.commands.run,
+                            "npm run dev || npm start",
+                            cwd=backend_cwd,
+                            background=True,
+                        )
+                        _capture("backend:dev", backend_dev)
+                        _log(
+                            "[backend] Backend process started; frontend can reach it via http://127.0.0.1:<port> if configured."
+                        )
+                except Exception as backend_exc:
+                    _log(
+                        f"[backend:error] Failed to start backend; frontend preview is still available ({backend_exc})"
+                    )
 
             # Give Vite a moment to compile
             await asyncio.sleep(5)

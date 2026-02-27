@@ -55,6 +55,8 @@ interface ConsoleLine {
   timestamp: number;
 }
 
+type ConsoleTab = "sandbox" | "browser";
+
 const LEVEL_COLORS: Record<string, string> = {
   log: "text-foreground-muted",
   info: "text-blue-400",
@@ -78,8 +80,10 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const [sandboxError, setSandboxError] = useState<string | null>(null);
   const [sandboxBuildStatus, setSandboxBuildStatus] = useState<string>("Creating sandbox...");
   const [device, setDevice] = useState<DevicePreset>("responsive");
-  const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>([]);
+  const [sandboxConsoleLines, setSandboxConsoleLines] = useState<ConsoleLine[]>([]);
+  const [browserConsoleLines, setBrowserConsoleLines] = useState<ConsoleLine[]>([]);
   const [consoleOpen, setConsoleOpen] = useState(false);
+  const [consoleTab, setConsoleTab] = useState<ConsoleTab>("browser");
   const consoleEndRef = useRef<HTMLDivElement>(null);
   const {
     previewInitialized,
@@ -99,19 +103,22 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
   const layoutMenuRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll console to bottom
+  const activeConsoleLines =
+    consoleTab === "sandbox" ? sandboxConsoleLines : browserConsoleLines;
+
+  // Auto-scroll console to bottom for the active tab
   useEffect(() => {
     if (consoleOpen && consoleEndRef.current) {
       consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [consoleLines, consoleOpen]);
+  }, [activeConsoleLines.length, consoleOpen, consoleTab]);
 
   // Listen for browser console messages from the iframe (via postMessage bridge)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "__console_bridge__") {
         const { level, message, timestamp } = event.data;
-        setConsoleLines((prev) => [
+        setBrowserConsoleLines((prev) => [
           ...prev,
           { level: level || "log", message: message || "", timestamp: timestamp || Date.now() },
         ]);
@@ -245,6 +252,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     setSandboxError(null);
     setPreviewInitialized(true);
     setIsLoading(true);
+    setConsoleTab("browser");
     setIframeKey((k) => k + 1);
   };
 
@@ -255,8 +263,10 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     setIsLoading(true);
     setSandboxBuildStatus("Starting sandbox...");
     setSandboxLogs([]);
-    setConsoleLines([]);
+    setSandboxConsoleLines([]);
+    setBrowserConsoleLines([]);
     setConsoleOpen(true);
+    setConsoleTab("sandbox");
 
     try {
       // Step 1: kick off creation (returns 202 immediately)
@@ -278,7 +288,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
           const newLines = info.logs.slice(seenLogCount);
           seenLogCount = info.logs.length;
           setSandboxLogs(info.logs);
-          setConsoleLines((prev) => [
+          setSandboxConsoleLines((prev) => [
             ...prev,
             ...newLines.map((msg) => ({
               level: "build" as const,
@@ -326,8 +336,8 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     setIsLoading(false);
   };
 
-  const errorCount = consoleLines.filter((l) => l.level === "error").length;
-  const warnCount = consoleLines.filter((l) => l.level === "warn").length;
+  const errorCount = browserConsoleLines.filter((l) => l.level === "error").length;
+  const warnCount = browserConsoleLines.filter((l) => l.level === "warn").length;
 
   return (
     <div className="h-full w-full flex flex-col bg-background">
@@ -554,12 +564,43 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
             <div className="h-8 border-b border-border flex items-center px-3 gap-2 shrink-0 bg-background-secondary">
               <Terminal className="h-3 w-3 text-foreground-subtle" />
               <span className="text-xs font-medium text-foreground-muted">Console</span>
+              <div className="flex items-center gap-1 ml-2 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setConsoleTab("sandbox")}
+                  className={`px-2 py-0.5 rounded-sm text-xs ${
+                    consoleTab === "sandbox"
+                      ? "text-accent bg-accent/5"
+                      : "text-foreground-muted hover:bg-background-tertiary"
+                  }`}
+                >
+                  E2B Sandbox
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConsoleTab("browser")}
+                  className={`px-2 py-0.5 rounded-sm text-xs ${
+                    consoleTab === "browser"
+                      ? "text-accent bg-accent/5"
+                      : "text-foreground-muted hover:bg-background-tertiary"
+                  }`}
+                >
+                  Browser Console
+                </button>
+              </div>
               <span className="text-[10px] text-foreground-subtle">
-                {consoleLines.length} {consoleLines.length === 1 ? "message" : "messages"}
+                {activeConsoleLines.length}{" "}
+                {activeConsoleLines.length === 1 ? "message" : "messages"}
               </span>
               <div className="flex-1" />
               <button
-                onClick={() => setConsoleLines([])}
+                onClick={() => {
+                  if (consoleTab === "sandbox") {
+                    setSandboxConsoleLines([]);
+                  } else {
+                    setBrowserConsoleLines([]);
+                  }
+                }}
                 className="p-1 rounded hover:bg-background-tertiary transition-colors"
                 title="Clear console"
               >
@@ -575,12 +616,12 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
             </div>
             {/* Console Content */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden font-mono text-xs p-2 space-y-px scrollbar-auto-hide">
-              {consoleLines.length === 0 ? (
+              {activeConsoleLines.length === 0 ? (
                 <div className="text-foreground-subtle italic text-center py-4">
                   No console output yet
                 </div>
               ) : (
-                consoleLines.map((line, i) => (
+                activeConsoleLines.map((line, i) => (
                   <div
                     key={i}
                     className={`flex items-start gap-1.5 px-1 py-0.5 rounded hover:bg-background-secondary/50 ${LEVEL_COLORS[line.level] || "text-foreground-muted"}`}
