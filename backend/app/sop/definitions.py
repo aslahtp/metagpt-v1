@@ -241,6 +241,7 @@ You write clean, maintainable, and well-documented code.""",
         "Follow best practices for the language/framework",
         "Generate working, runnable code",
         "IMPORTANT: Do NOT use ports 3000 or 8000 - use port 5173 for frontend dev servers and port 8080 for backend servers",
+        "IMPORTANT (sandbox compatibility): For split frontend/backend architectures, frontend code MUST NOT hardcode API URLs like http://localhost:8080. Instead, read the API base from an environment variable (Vite: import.meta.env.VITE_API_BASE_URL) with a localhost:8080 fallback for local development.",
     ],
     quality_checklist=[
         "All files from architecture are implemented",

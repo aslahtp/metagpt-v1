@@ -188,37 +188,40 @@ class SandboxService:
                     if fpath.endswith("package.json"):
                         package_json_paths.append(fpath)
 
-                frontend_candidates = ["frontend/package.json", "client/package.json", "web/package.json"]
+                def _parent_dir(path: str) -> str:
+                    if "/" not in path:
+                        return "."
+                    return path.rsplit("/", 1)[0]
+
+                def _pick_by_prefix(prefixes: list[str]) -> str | None:
+                    # Prefer the deepest match under the prefix (e.g. frontend/client/package.json).
+                    matches = [
+                        p for p in package_json_paths if any(p.startswith(f"{pre}/") for pre in prefixes)
+                    ]
+                    if not matches:
+                        return None
+                    matches.sort(key=lambda p: (p.count("/"), len(p)), reverse=True)
+                    return matches[0]
 
                 frontend_rel_dir = "."
                 backend_rel_dir: str | None = None
 
-                # Single-root app at repo root
-                if "package.json" in package_json_paths:
-                    frontend_rel_dir = "."
-                    # Prefer backend/ or server/ package.json as backend if present
-                    if "backend/package.json" in package_json_paths:
-                        backend_rel_dir = "backend"
-                    elif "server/package.json" in package_json_paths:
-                        backend_rel_dir = "server"
-                else:
-                    # No root package.json – look for conventional frontend folder first
-                    chosen_frontend: str | None = None
-                    for candidate in frontend_candidates:
-                        if candidate in package_json_paths:
-                            chosen_frontend = candidate
-                            break
-                    if chosen_frontend:
-                        frontend_rel_dir = chosen_frontend.split("/")[0]
-                    elif len(package_json_paths) == 1:
-                        # Fallback: exactly one package.json somewhere
-                        frontend_rel_dir = package_json_paths[0].split("/")[0]
+                # If we see a conventional frontend folder, treat that as the frontend root
+                # even if a root package.json exists (workspace / monorepo-like setups).
+                chosen_frontend_pkg = _pick_by_prefix(["frontend", "client", "web"])
 
-                    # For backend, prefer backend/ or server/ if present
-                    if "backend/package.json" in package_json_paths:
-                        backend_rel_dir = "backend"
-                    elif "server/package.json" in package_json_paths:
-                        backend_rel_dir = "server"
+                if chosen_frontend_pkg:
+                    frontend_rel_dir = _parent_dir(chosen_frontend_pkg)
+                elif len(package_json_paths) == 1:
+                    # Single package.json anywhere → treat as the app root
+                    frontend_rel_dir = _parent_dir(package_json_paths[0])
+                elif "package.json" in package_json_paths:
+                    # Fallback: root package.json with no better hint
+                    frontend_rel_dir = "."
+
+                chosen_backend_pkg = _pick_by_prefix(["backend", "server"])
+                if chosen_backend_pkg:
+                    backend_rel_dir = _parent_dir(chosen_backend_pkg)
 
                 return frontend_rel_dir, backend_rel_dir
 
@@ -335,19 +338,17 @@ for (const file of configs) {
             )
             _capture("vite", patch_result)
 
-            # ── 6. Start dev server ──
-            _log("[dev] Starting dev server…")
-            await asyncio.to_thread(
-                sandbox.commands.run,
-                "npm run dev -- --host 0.0.0.0",
-                background=True,
-                cwd=frontend_cwd,
-            )
+            # ── 6. Optional backend start + frontend API base mapping (split frontend/backend only) ──
+            backend_public_url: str | None = None
+            backend_port = 8080
 
-            # ── 6b. Optional backend start (best-effort, does not affect preview_url) ──
-            if backend_rel_dir:
+            # Only apply backend URL mapping when the architecture is split into
+            # a non-root frontend folder plus a backend folder.
+            if backend_rel_dir and frontend_rel_dir != ".":
                 backend_cwd = f"{app_dir}/{backend_rel_dir}"
-                _log(f"[backend] Installing backend dependencies in {backend_rel_dir}/ …")
+                _log(
+                    f"[backend] Installing backend dependencies in {backend_rel_dir}/ …"
+                )
                 try:
                     backend_install = await asyncio.to_thread(
                         sandbox.commands.run,
@@ -362,25 +363,53 @@ for (const file of configs) {
                             f"(exit {backend_install.exit_code})"
                         )
                     else:
-                        # Try dev or start script
                         _log(
-                            "[backend] Starting backend dev server (npm run dev || npm start) in background…"
+                            f"[backend] Starting backend on port {backend_port} (npm run dev || npm start) in background…"
                         )
-                        # Prefer npm run dev, but fall back to npm start if that fails.
+                        # Best-effort: many Node frameworks respect PORT/HOST.
                         backend_dev = await asyncio.to_thread(
                             sandbox.commands.run,
-                            "npm run dev || npm start",
+                            f"PORT={backend_port} HOST=0.0.0.0 npm run dev || PORT={backend_port} HOST=0.0.0.0 npm start",
                             cwd=backend_cwd,
                             background=True,
                         )
                         _capture("backend:dev", backend_dev)
+
+                        # Map backend port to a public E2B host URL for the browser.
+                        backend_host = await asyncio.to_thread(
+                            sandbox.get_host, backend_port
+                        )
+                        backend_public_url = f"https://{backend_host}"
+                        _log(f"[backend] Public backend URL: {backend_public_url}")
+
+                        # Inject API base URL for the frontend dev server (Vite mode).
+                        env_path = f"{frontend_cwd}/.env.sandbox"
+                        env_body = f"VITE_API_BASE_URL={backend_public_url}\n"
+                        await asyncio.to_thread(sandbox.files.write, env_path, env_body)
                         _log(
-                            "[backend] Backend process started; frontend can reach it via http://127.0.0.1:<port> if configured."
+                            f"[frontend] Wrote sandbox env (.env.sandbox) with VITE_API_BASE_URL for {frontend_rel_dir}/"
+                        )
+                        await self._inject_network_bridge(
+                            sandbox, frontend_cwd, backend_public_url
                         )
                 except Exception as backend_exc:
                     _log(
-                        f"[backend:error] Failed to start backend; frontend preview is still available ({backend_exc})"
+                        f"[backend:error] Failed to start/map backend; frontend preview is still available ({backend_exc})"
                     )
+
+            # ── 7. Start frontend dev server ──
+            dev_cmd = "npm run dev -- --host 0.0.0.0"
+            if backend_public_url:
+                # Use Vite mode so .env.sandbox is loaded without clobbering .env.
+                dev_cmd = "npm run dev -- --host 0.0.0.0 --mode sandbox"
+
+            _log("[dev] Starting dev server…")
+            await asyncio.to_thread(
+                sandbox.commands.run,
+                dev_cmd,
+                background=True,
+                cwd=frontend_cwd,
+            )
 
             # Give Vite a moment to compile
             await asyncio.sleep(5)
@@ -501,6 +530,108 @@ for (const file of configs) {
         await asyncio.to_thread(
             sandbox.commands.run,
             "node inject-bridge.cjs",
+            cwd=app_dir,
+        )
+
+    async def _inject_network_bridge(
+        self, sandbox: object, app_dir: str, backend_public_url: str
+    ) -> None:
+        """
+        Inject a small network bridge that rewrites browser requests targeting
+        localhost:8080 / 127.0.0.1:8080 to the sandbox backend public URL.
+
+        This makes previews work even when generated frontend code hardcodes
+        http://localhost:8080, without requiring template-specific changes.
+        """
+        bridge_js = dedent(
+            f"""\
+            (function() {{
+              if (window.__sandboxNetworkBridgeInstalled) return;
+              window.__sandboxNetworkBridgeInstalled = true;
+
+              var backendBase = {backend_public_url!r};
+              var targets = ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://0.0.0.0:8080'];
+
+              function rewrite(url) {{
+                try {{
+                  if (!url) return url;
+                  if (typeof url !== 'string') return url;
+                  for (var i = 0; i < targets.length; i++) {{
+                    if (url.indexOf(targets[i]) === 0) {{
+                      return backendBase + url.slice(targets[i].length);
+                    }}
+                  }}
+                  return url;
+                }} catch (e) {{
+                  return url;
+                }}
+              }}
+
+              // Patch fetch
+              if (window.fetch) {{
+                var _origFetch = window.fetch;
+                window.fetch = function(input, init) {{
+                  try {{
+                    if (typeof input === 'string') {{
+                      input = rewrite(input);
+                    }} else if (input && typeof input.url === 'string') {{
+                      // Request object: recreate with rewritten URL
+                      var newUrl = rewrite(input.url);
+                      input = new Request(newUrl, input);
+                    }}
+                  }} catch (e) {{}}
+                  return _origFetch.call(this, input, init);
+                }};
+              }}
+
+              // Patch XHR (axios)
+              if (window.XMLHttpRequest) {{
+                var _origOpen = window.XMLHttpRequest.prototype.open;
+                window.XMLHttpRequest.prototype.open = function(method, url) {{
+                  try {{
+                    url = rewrite(url);
+                  }} catch (e) {{}}
+                  return _origOpen.apply(this, arguments.length >= 2 ? [method, url].concat([].slice.call(arguments, 2)) : arguments);
+                }};
+              }}
+            }})();"""
+        )
+
+        await asyncio.to_thread(
+            sandbox.files.write,
+            f"{app_dir}/public/__sandbox_network_bridge.js",
+            bridge_js,
+        )
+
+        patch_html_script = dedent(
+            """\
+            const fs = require('fs');
+            const path = require('path');
+            const htmlPath = path.join(process.cwd(), 'index.html');
+            try {
+              let html = fs.readFileSync(htmlPath, 'utf8');
+              if (!html.includes('__sandbox_network_bridge')) {
+                html = html.replace(
+                  '<head>',
+                  '<head><script src="/__sandbox_network_bridge.js"></script>'
+                );
+                fs.writeFileSync(htmlPath, html);
+                console.log('Injected sandbox network bridge into index.html');
+              }
+            } catch(e) {
+              console.log('Could not patch index.html for network bridge:', e.message);
+            }
+            """
+        )
+
+        await asyncio.to_thread(
+            sandbox.files.write,
+            f"{app_dir}/inject-network-bridge.cjs",
+            patch_html_script,
+        )
+        await asyncio.to_thread(
+            sandbox.commands.run,
+            "node inject-network-bridge.cjs",
             cwd=app_dir,
         )
 
