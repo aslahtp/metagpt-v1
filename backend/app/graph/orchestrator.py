@@ -29,7 +29,7 @@ class AgentPipeline:
     Implements the deterministic workflow:
     Manager → Architect → Engineer → QA
 
-    All agents use Gemini 3 Flash as configured in the llm module.
+    All agents use Gemini Model as configured in the llm module.
     """
 
     def __init__(self):

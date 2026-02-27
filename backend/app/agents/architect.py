@@ -4,7 +4,7 @@ Architect Agent - System Design
 The Architect Agent receives requirements from the Manager and designs
 the complete system architecture including file structure and APIs.
 
-LLM: Gemini 3 Flash (via LangChain)
+LLM: Gemini Model (via LangChain)
 """
 
 import json

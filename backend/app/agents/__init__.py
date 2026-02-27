@@ -1,4 +1,4 @@
-"""SOP-driven autonomous agents using Gemini 3 Flash."""
+"""SOP-driven autonomous agents using Gemini Model."""
 
 from app.agents.base import BaseAgent
 from app.agents.manager import ManagerAgent

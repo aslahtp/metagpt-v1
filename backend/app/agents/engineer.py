@@ -4,7 +4,7 @@ Engineer Agent - Code Generation
 The Engineer Agent implements the system design by generating
 complete, production-ready code files.
 
-LLM: Gemini 3 Flash (via LangChain)
+LLM: Gemini 3 (via LangChain)
 """
 
 import json

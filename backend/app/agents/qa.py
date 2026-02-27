@@ -4,7 +4,7 @@ QA Agent - Quality Assurance & Testing
 The QA Agent reviews generated code, creates test cases,
 and provides quality validation for the entire project.
 
-LLM: Gemini 3 Flash (via LangChain)
+LLM: Gemini Model (via LangChain)
 """
 
 import json

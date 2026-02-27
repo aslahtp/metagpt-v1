@@ -54,7 +54,7 @@ app/
 
 ## LLM Configuration
 
-All agents use Google Gemini 3 Flash via LangChain:
+All agents use Google Gemini LangChain:
 
 ```python
 from app.llm import get_llm, get_llm_with_structured_output

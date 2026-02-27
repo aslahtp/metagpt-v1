@@ -9,7 +9,7 @@ This document provides a detailed, implementation‑oriented overview of the Met
 
 The project consists of two primary applications:
 
-- **Backend** (`backend/`): FastAPI + LangChain + LangGraph + Gemini 3 Flash
+- **Backend** (`backend/`): FastAPI + LangChain + LangGraph + Gemini Model
 - **Frontend** (`frontend/`): Next.js 14 (App Router) + TypeScript + Tailwind CSS
 
 ---
@@ -222,7 +222,7 @@ Key modules:
 
 **Responsibilities:**
 
-- Provide centralized configuration for **Google Gemini 3 Flash** via LangChain.
+- Provide centralized configuration for **Google Gemini Model** via LangChain.
 - Expose helper functions:
   ```python
   from app.llm import get_llm, get_llm_with_structured_output
@@ -234,7 +234,7 @@ Key modules:
 
 - Environment variables (see root `README.md` and `backend/README.md`):
   - `GOOGLE_API_KEY` – required.
-  - `LLM_MODEL` – model name (default: `gemini-2.0-flash`).
+  - `LLM_MODEL` – model name (default: `gemini-2.5-flash`).
   - `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`, etc.
 - `app/config.py` – central configuration; environment variables override defaults.
 
@@ -436,7 +436,7 @@ Configuration is mainly driven by environment variables, loaded and validated by
 
 ```bash
 GOOGLE_API_KEY=your-api-key
-LLM_MODEL=gemini-2.0-flash
+LLM_MODEL=gemini-2.5-flash
 LLM_TEMPERATURE=0.7
 LLM_MAX_TOKENS=8192
 PROJECTS_DIR=./projects

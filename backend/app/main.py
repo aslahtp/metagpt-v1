@@ -2,7 +2,7 @@
 MetaGPT: Main FastAPI Application
 
 A production-ready agentic system with SOP-driven autonomous agents.
-Uses Google Gemini 3 Flash via LangChain for all agent operations.
+Uses Google Gemini Model via LangChain for all agent operations.
 """
 
 import logging
@@ -64,7 +64,7 @@ def create_app() -> FastAPI:
 
         ## LLM
 
-        All agents use **Google Gemini 3 Flash** via LangChain.
+        All agents use **Google Gemini Model** via LangChain.
         """,
         lifespan=lifespan,
         docs_url="/docs",

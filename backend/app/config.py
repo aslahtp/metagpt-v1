@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
-    # LLM Configuration - Gemini 3 Flash
+    # LLM Configuration - Gemini Model
     google_api_key: str = ""
     llm_model: str = "gemini-2.0-flash"
     llm_temperature: float | None = None

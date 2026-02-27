@@ -1,4 +1,4 @@
-"""LLM module - Centralized Gemini 3 Flash configuration."""
+"""LLM module - Centralized Gemini Model configuration."""
 
 from app.llm.gemini import get_llm, get_llm_with_structured_output
 

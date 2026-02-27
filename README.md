@@ -17,7 +17,7 @@ User Prompt → Manager → Architect → Engineer → QA → Generated Project
 
 ### LLM
 
-All agents use **Google Gemini 3 Flash** via LangChain. No OpenAI, no Anthropic, no fallback models.
+All agents use **Google Gemini** via LangChain. No OpenAI, no Anthropic, no fallback models.
 
 ## Tech Stack
 
@@ -183,7 +183,7 @@ SOPs are defined in `backend/app/sop/definitions.py`.
 GOOGLE_API_KEY=your-api-key
 
 # Optional
-LLM_MODEL=gemini-2.0-flash
+LLM_MODEL=gemini-model-name-here
 LLM_TEMPERATURE=0.7
 LLM_MAX_TOKENS=8192
 PROJECTS_DIR=./projects
@@ -197,7 +197,7 @@ The LLM is centrally configured in `backend/app/llm/gemini.py`. All agents use t
 ```python
 from app.llm import get_llm
 
-llm = get_llm()  # Returns configured Gemini 3 Flash instance
+llm = get_llm()  # Returns configured Gemini model instance
 ```
 
 ## Development
@@ -237,26 +237,26 @@ npm run lint
 
 ### Implemented
 
-- [x] SOP-driven agents (Manager, Architect, Engineer, QA)
-- [x] LangGraph orchestration
-- [x] Gemini 3 Flash integration
-- [x] File generation and storage
-- [x] Streaming pipeline execution
-- [x] Chat-based iterations
-- [x] React/Next.js project detection
-- [x] Dark theme UI
-- [x] File explorer and code viewer
-- [x] Execution timeline
-- [x] Agent output visualization
+- SOP-driven agents (Manager, Architect, Engineer, QA)
+- LangGraph orchestration
+- Gemini 3 integration
+- File generation and storage
+- Streaming pipeline execution
+- Chat-based iterations
+- React/Next.js project detection
+- Dark theme UI
+- File explorer and code viewer
+- Execution timeline
+- Agent output visualization
 
 ### Roadmap
 
-- [ ] Live preview for React projects
-- [ ] Git integration
-- [ ] Deployment support
-- [ ] Multiple project templates
-- [ ] Collaborative editing
-- [ ] Version history
+- Live preview for React projects
+- Git integration
+- Deployment support
+- Multiple project templates
+- Collaborative editing
+- Version history
 
 ## License
 

@@ -4,7 +4,7 @@ Manager Agent - Requirements Analysis
 The Manager Agent is the first agent in the pipeline.
 It transforms natural language user prompts into structured requirements.
 
-LLM: Gemini 3 Flash (via LangChain)
+LLM: Gemini Model (via LangChain)
 """
 
 from typing import Any

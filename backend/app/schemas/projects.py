@@ -107,7 +107,7 @@ class ChatRequest(BaseModel):
     )
     model: str | None = Field(
         default=None,
-        description="LLM model override (e.g. 'gemini-2.0-flash', 'gemini-2.5-pro'). None means auto.",
+        description="LLM model override (e.g. 'gemini-2.5-flash', 'gemini-2.5-pro'). None means auto.",
     )
 
 

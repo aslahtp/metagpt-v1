@@ -2,7 +2,7 @@
 Base Agent Class - Foundation for all SOP-driven agents.
 
 All agents inherit from this base class which provides:
-- Centralized LLM access (Gemini 3 Flash)
+- Centralized LLM access (Gemini Model)
 - SOP loading and formatting
 - Structured output parsing
 - Execution tracking and logging
@@ -26,7 +26,7 @@ class BaseAgent(ABC, Generic[T]):
     """
     Base class for all SOP-driven agents.
 
-    All agents use Gemini 3 Flash via LangChain as configured in the llm module.
+    All agents use Gemini Model via LangChain as configured in the llm module.
     Each agent operates according to its SOP (Standard Operating Procedure).
     """
 
@@ -71,7 +71,7 @@ class BaseAgent(ABC, Generic[T]):
 
         This method:
         1. Builds the prompt using the SOP template
-        2. Invokes Gemini 3 Flash with structured output
+        2. Invokes Gemini Model with structured output
         3. Parses and validates the response
         4. Tracks execution statistics
 
