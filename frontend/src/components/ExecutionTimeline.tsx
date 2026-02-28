@@ -86,6 +86,25 @@ export function ExecutionTimeline() {
   const hasError =
     project?.state.pipeline_status?.stage === "error";
 
+  const pipelineStatus = project?.state.pipeline_status;
+  const toDateString = (v: unknown): string | null => {
+    if (v == null) return null;
+    const raw = typeof v === "object" && v !== null && "$date" in v
+      ? (v as { $date: string }).$date
+      : String(v);
+    try {
+      return new Date(raw).toLocaleString();
+    } catch {
+      return null;
+    }
+  };
+  const startedAt = pipelineStatus?.started_at != null
+    ? toDateString(pipelineStatus.started_at)
+    : null;
+  const completedAt = pipelineStatus?.completed_at != null
+    ? toDateString(pipelineStatus.completed_at)
+    : null;
+
   return (
     <div className="p-4 space-y-5">
       {/* Progress */}
@@ -239,6 +258,22 @@ export function ExecutionTimeline() {
           <p className="text-[11px] text-foreground-muted/70 mt-1.5 ml-7">
             All agents finished. Check the Outputs tab for details.
           </p>
+          {(startedAt || completedAt) && (
+            <div className="text-[11px] text-foreground-muted/70 mt-2 ml-7 space-y-0.5">
+              {startedAt && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-foreground-subtle">Started</span>
+                  <span>{startedAt}</span>
+                </div>
+              )}
+              {completedAt && (
+                <div className="flex justify-between gap-2">
+                  <span className="text-foreground-subtle">Completed</span>
+                  <span>{completedAt}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

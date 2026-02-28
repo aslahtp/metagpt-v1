@@ -15,8 +15,100 @@ import {
   getPriorityColor,
   getSeverityColor,
 } from "@/lib/utils";
+import type { Requirement, Component } from "@/lib/api";
 
 const DEFAULT_VISIBLE_COUNT = 5;
+
+function CollapsibleRequirementItem({
+  req,
+  getPriorityColor,
+}: {
+  req: Requirement;
+  getPriorityColor: (priority: string) => string;
+}) {
+  const [criteriaExpanded, setCriteriaExpanded] = useState(false);
+  const hasCriteria = (req.acceptance_criteria?.length ?? 0) > 0;
+  return (
+    <div className="text-xs p-2 bg-background-tertiary rounded">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-foreground-subtle">{req.id}</span>
+        <span className={getPriorityColor(req.priority)}>{req.priority}</span>
+        {req.category && (
+          <span className="text-foreground-muted">{req.category}</span>
+        )}
+      </div>
+      <p className="mt-1 text-foreground-muted">{req.description}</p>
+      {hasCriteria && (
+        <div className="mt-1.5">
+          <button
+            type="button"
+            onClick={() => setCriteriaExpanded(!criteriaExpanded)}
+            className="flex items-center gap-1 text-foreground-subtle hover:text-foreground transition-colors"
+          >
+            {criteriaExpanded ? (
+              <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+            )}
+            {criteriaExpanded
+              ? "Hide acceptance criteria"
+              : `Show acceptance criteria (${req.acceptance_criteria!.length})`}
+          </button>
+          {criteriaExpanded && (
+            <ul className="mt-1 pl-4 list-disc list-inside text-foreground-muted space-y-0.5">
+              {req.acceptance_criteria!.map((ac, i) => (
+                <li key={i}>{ac}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CollapsibleComponentItem({ comp }: { comp: Component }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="text-xs p-2 bg-background-tertiary rounded">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
+      >
+        {expanded ? (
+          <ChevronDown className="h-3.5 w-3.5 text-foreground-muted shrink-0" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 text-foreground-muted shrink-0" />
+        )}
+        <span className="font-medium">{comp.name}</span>
+        <span className="text-foreground-subtle">{comp.type}</span>
+        <span className="text-foreground-muted ml-auto">
+          {expanded ? "Hide description" : "Show description"}
+        </span>
+      </button>
+      {expanded && (
+        <div className="mt-2 pl-5 border-l-2 border-border space-y-1">
+          <p className="text-foreground-muted">{comp.description}</p>
+          {comp.technologies?.length > 0 && (
+            <p className="text-foreground-subtle">
+              tech: {comp.technologies.join(", ")}
+            </p>
+          )}
+          {comp.files?.length > 0 && (
+            <ul className="text-foreground-subtle space-y-0.5">
+              {comp.files.map((f, fi) => (
+                <li key={fi} className="font-mono text-[11px]">
+                  {f.path} — {f.purpose}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AgentOutputs() {
   const { project, expandedAgents, toggleAgentExpanded } = useProjectStore();
@@ -51,6 +143,46 @@ export function AgentOutputs() {
               value={manager_output.tech_stack.join(", ")}
             />
 
+            {/* Project description */}
+            {manager_output.project_description && (
+              <div>
+                <h4 className="text-xs font-medium text-foreground-muted mb-1">
+                  Description
+                </h4>
+                <p className="text-xs text-foreground-muted">
+                  {manager_output.project_description}
+                </p>
+              </div>
+            )}
+
+            {/* Constraints */}
+            {manager_output.constraints?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-medium text-foreground-muted mb-1">
+                  Constraints
+                </h4>
+                <ul className="text-xs text-foreground-muted list-disc list-inside space-y-0.5">
+                  {manager_output.constraints.map((c, i) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Assumptions */}
+            {manager_output.assumptions?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-medium text-foreground-muted mb-1">
+                  Assumptions
+                </h4>
+                <ul className="text-xs text-foreground-muted list-disc list-inside space-y-0.5">
+                  {manager_output.assumptions.map((a, i) => (
+                    <li key={i}>{a}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Requirements */}
             <div>
               <h4 className="text-xs font-medium text-foreground-muted mb-2">
@@ -60,18 +192,11 @@ export function AgentOutputs() {
                 items={manager_output.requirements}
                 label="requirements"
                 renderItem={(req) => (
-                  <div
+                  <CollapsibleRequirementItem
                     key={req.id}
-                    className="text-xs p-2 bg-background-tertiary rounded"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-foreground-subtle">{req.id}</span>
-                      <span className={getPriorityColor(req.priority)}>
-                        {req.priority}
-                      </span>
-                    </div>
-                    <p className="mt-1">{req.description}</p>
-                  </div>
+                    req={req}
+                    getPriorityColor={getPriorityColor}
+                  />
                 )}
               />
             </div>
@@ -105,6 +230,105 @@ export function AgentOutputs() {
               value={`${architect_output.file_structure.length} files`}
             />
 
+            {/* File structure */}
+            {architect_output.file_structure?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-medium text-foreground-muted mb-2">
+                  File Structure
+                </h4>
+                <ExpandableList
+                  items={architect_output.file_structure}
+                  label="files"
+                  renderItem={(fs, i) => (
+                    <div
+                      key={i}
+                      className="text-xs p-2 bg-background-tertiary rounded"
+                    >
+                      <span className="font-mono">{fs.path}</span>
+                      <p className="mt-0.5 text-foreground-muted">{fs.purpose}</p>
+                      {fs.dependencies?.length > 0 && (
+                        <p className="mt-0.5 text-foreground-subtle">
+                          deps: {fs.dependencies.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                />
+              </div>
+            )}
+
+            {/* API design */}
+            {architect_output.api_design &&
+              Object.keys(architect_output.api_design).length > 0 && (
+                <div>
+                  <h4 className="text-xs font-medium text-foreground-muted mb-2">
+                    API Design
+                  </h4>
+                  <div className="space-y-2">
+                    {Object.entries(architect_output.api_design).map(
+                      ([key, val]) => (
+                        <div
+                          key={key}
+                          className="text-xs p-2 bg-background-tertiary rounded"
+                        >
+                          <span className="font-mono font-medium">{key}</span>
+                          {val &&
+                            typeof val === "object" &&
+                            !Array.isArray(val) && (
+                              <ul className="mt-1 text-foreground-muted space-y-0.5 list-none">
+                                {Object.entries(val as Record<string, unknown>).map(
+                                  ([k, v]) => (
+                                    <li key={k}>
+                                      <span className="text-foreground-subtle">
+                                        {k}:
+                                      </span>{" "}
+                                      {typeof v === "string"
+                                        ? v
+                                        : JSON.stringify(v)}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            )}
+                          {val && typeof val === "string" && (
+                            <p className="mt-1 text-foreground-muted">{val}</p>
+                          )}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {/* Database schema */}
+            {architect_output.database_schema &&
+              Object.keys(architect_output.database_schema).length > 0 && (
+                <CollapsibleBlock
+                  label="Database Schema"
+                  content={
+                    <pre className="text-xs text-foreground-muted bg-background-tertiary p-2 rounded overflow-x-auto whitespace-pre-wrap break-words">
+                      {JSON.stringify(
+                        architect_output.database_schema,
+                        null,
+                        2
+                      )}
+                    </pre>
+                  }
+                />
+              )}
+
+            {/* Deployment notes */}
+            {architect_output.deployment_notes && (
+              <div>
+                <h4 className="text-xs font-medium text-foreground-muted mb-1">
+                  Deployment Notes
+                </h4>
+                <p className="text-xs text-foreground-muted">
+                  {architect_output.deployment_notes}
+                </p>
+              </div>
+            )}
+
             {/* Components */}
             <div>
               <h4 className="text-xs font-medium text-foreground-muted mb-2">
@@ -114,20 +338,7 @@ export function AgentOutputs() {
                 items={architect_output.components}
                 label="components"
                 renderItem={(comp, i) => (
-                  <div
-                    key={i}
-                    className="text-xs p-2 bg-background-tertiary rounded"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{comp.name}</span>
-                      <span className="text-foreground-subtle">
-                        {comp.type}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-foreground-muted">
-                      {comp.description}
-                    </p>
-                  </div>
+                  <CollapsibleComponentItem key={i} comp={comp} />
                 )}
               />
             </div>
@@ -170,6 +381,18 @@ export function AgentOutputs() {
               }
             />
 
+            {/* Implementation notes */}
+            {engineer_output.implementation_notes && (
+              <div>
+                <h4 className="text-xs font-medium text-foreground-muted mb-1">
+                  Implementation Notes
+                </h4>
+                <p className="text-xs text-foreground-muted">
+                  {engineer_output.implementation_notes}
+                </p>
+              </div>
+            )}
+
             {/* Files List */}
             <div>
               <h4 className="text-xs font-medium text-foreground-muted mb-2">
@@ -181,12 +404,23 @@ export function AgentOutputs() {
                 renderItem={(file, i) => (
                   <div
                     key={i}
-                    className="text-xs p-2 bg-background-tertiary rounded flex items-center gap-2"
+                    className="text-xs p-2 bg-background-tertiary rounded"
                   >
-                    <span className="font-mono">{file.file_path}</span>
-                    <span className="text-foreground-subtle">
-                      ({file.file_language})
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono">{file.file_path}</span>
+                      <span className="text-foreground-subtle">
+                        ({file.file_language})
+                      </span>
+                    </div>
+                    {file.file_purpose && (
+                      <p className="mt-0.5 text-foreground-muted">
+                        {file.file_purpose}
+                      </p>
+                    )}
+                    <CodeBlock
+                      content={file.file_content}
+                      label="View code"
+                    />
                   </div>
                 )}
               />
@@ -256,6 +490,58 @@ export function AgentOutputs() {
               value={`${qa_output.test_cases.length} tests`}
             />
 
+            {/* Test cases */}
+            {qa_output.test_cases.length > 0 && (
+              <div>
+                <h4 className="text-xs font-medium text-foreground-muted mb-2">
+                  Test Cases
+                </h4>
+                <ExpandableList
+                  items={qa_output.test_cases}
+                  label="tests"
+                  renderItem={(tc) => (
+                    <div
+                      key={tc.id}
+                      className="text-xs p-2 bg-background-tertiary rounded"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-foreground-subtle">{tc.id}</span>
+                        <span className="font-medium">{tc.name}</span>
+                        <span className="text-foreground-subtle">
+                          ({tc.test_type})
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-foreground-muted">
+                        {tc.description}
+                      </p>
+                      {tc.target_file && (
+                        <p className="mt-0.5 font-mono text-[11px] text-foreground-subtle">
+                          target: {tc.target_file}
+                        </p>
+                      )}
+                      {tc.steps?.length > 0 && (
+                        <ol className="mt-1 list-decimal list-inside text-foreground-muted space-y-0.5">
+                          {tc.steps.map((step, si) => (
+                            <li key={si}>{step}</li>
+                          ))}
+                        </ol>
+                      )}
+                      <p className="mt-1 text-foreground-muted">
+                        <span className="text-foreground-subtle">
+                          Expected:
+                        </span>{" "}
+                        {tc.expected_result}
+                      </p>
+                      <CodeBlock
+                        content={tc.test_code || ""}
+                        label="View test code"
+                      />
+                    </div>
+                  )}
+                />
+              </div>
+            )}
+
             {/* Validation Notes */}
             {qa_output.validation_notes.length > 0 && (
               <div>
@@ -271,7 +557,14 @@ export function AgentOutputs() {
                       className="text-xs p-2 bg-background-tertiary rounded flex items-start gap-2"
                     >
                       <SeverityIcon severity={note.severity} />
-                      <div>
+                      <div className="min-w-0">
+                        {(note.file_path || note.category) && (
+                          <p className="text-foreground-subtle text-[11px] mb-0.5">
+                            {[note.file_path, note.category]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        )}
                         <p>{note.description}</p>
                         <p className="text-foreground-subtle mt-1">
                           {note.recommendation}
@@ -391,6 +684,63 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between text-xs gap-4">
       <span className="text-foreground-muted shrink-0">{label}</span>
       <span className="font-medium text-right">{value}</span>
+    </div>
+  );
+}
+
+function CollapsibleBlock({
+  label,
+  content,
+}: {
+  label: string;
+  content: React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="text-xs text-foreground-subtle hover:text-foreground flex items-center gap-1"
+      >
+        {expanded ? (
+          <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronRight className="h-3 w-3" />
+        )}
+        {label}
+      </button>
+      {expanded && <div className="mt-2">{content}</div>}
+    </div>
+  );
+}
+
+function CodeBlock({
+  content,
+  label = "View code",
+}: {
+  content: string;
+  label?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  if (!content.trim()) return null;
+  return (
+    <div className="mt-1.5">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="text-xs text-accent hover:text-accent/80 flex items-center gap-1"
+      >
+        {expanded ? (
+          <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronRight className="h-3 w-3" />
+        )}
+        {expanded ? "Hide code" : label}
+      </button>
+      {expanded && (
+        <pre className="mt-1 text-[11px] text-foreground-muted bg-background-tertiary p-2 rounded overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap break-words border border-border">
+          {content}
+        </pre>
+      )}
     </div>
   );
 }
