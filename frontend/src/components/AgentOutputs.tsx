@@ -27,7 +27,7 @@ function CollapsibleRequirementItem({
   return (
     <div className="text-xs p-2 bg-background-tertiary rounded">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-foreground-subtle">{req.id}</span>
+        <span className="text-foreground font-medium">{req.id}</span>
         <span className={getPriorityColor(req.priority)}>{req.priority}</span>
         {req.category && (
           <span className="text-foreground-muted">{req.category}</span>
@@ -73,12 +73,12 @@ function CollapsibleComponentItem({ comp }: { comp: Component }) {
         className="w-full flex items-center gap-2 text-left hover:opacity-80 transition-opacity"
       >
         {expanded ? (
-          <ChevronDown className="h-3.5 w-3.5 text-foreground-muted shrink-0" />
+          <ChevronDown className="h-3.5 w-3.5 text-foreground-subtle shrink-0" />
         ) : (
-          <ChevronRight className="h-3.5 w-3.5 text-foreground-muted shrink-0" />
+          <ChevronRight className="h-3.5 w-3.5 text-foreground-subtle shrink-0" />
         )}
-        <span className="font-medium">{comp.name}</span>
-        <span className="text-foreground-subtle">{comp.type}</span>
+        <span className="font-medium text-foreground">{comp.name}</span>
+        <span className="text-foreground-muted">{comp.type}</span>
       </button>
       {expanded && (
         <div className="mt-2 pl-5 border-l-2 border-border space-y-1">
@@ -89,7 +89,7 @@ function CollapsibleComponentItem({ comp }: { comp: Component }) {
             </p>
           )}
           {comp.files?.length > 0 && (
-            <ul className="text-foreground-subtle space-y-0.5">
+            <ul className="text-foreground-muted space-y-0.5">
               {comp.files.map((f, fi) => (
                 <li key={fi} className="font-mono text-[11px]">
                   {f.path} — {f.purpose}
@@ -403,7 +403,7 @@ export function AgentOutputs() {
                   >
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono">{file.file_path}</span>
-                      <span className="text-foreground-subtle">
+                      <span className="text-foreground-muted">
                         ({file.file_language})
                       </span>
                     </div>
@@ -497,9 +497,9 @@ export function AgentOutputs() {
                       className="text-xs p-2 bg-background-tertiary rounded"
                     >
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-foreground-subtle">{tc.id}</span>
-                        <span className="font-medium">{tc.name}</span>
-                        <span className="text-foreground-subtle">
+                        <span className="text-foreground font-medium">{tc.id}</span>
+                        <span className="font-medium text-foreground">{tc.name}</span>
+                        <span className="text-foreground-muted">
                           ({tc.test_type})
                         </span>
                       </div>
@@ -507,7 +507,7 @@ export function AgentOutputs() {
                         {tc.description}
                       </p>
                       {tc.target_file && (
-                        <p className="mt-0.5 font-mono text-[11px] text-foreground-subtle">
+                        <p className="mt-0.5 font-mono text-[11px] text-foreground-muted">
                           target: {tc.target_file}
                         </p>
                       )}
@@ -557,8 +557,8 @@ export function AgentOutputs() {
                               .join(" · ")}
                           </p>
                         )}
-                        <p>{note.description}</p>
-                        <p className="text-foreground-subtle mt-1">
+                        <p className="text-foreground">{note.description}</p>
+                        <p className="text-foreground-muted mt-1">
                           {note.recommendation}
                         </p>
                       </div>
@@ -613,16 +613,16 @@ function AgentSection({
       >
         <div className="flex items-center gap-2">
           {isExpanded ? (
-            <ChevronDown className="h-4 w-4 text-foreground-muted" />
+            <ChevronDown className="h-4 w-4 text-foreground-subtle" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-foreground-muted" />
+            <ChevronRight className="h-4 w-4 text-foreground-subtle" />
           )}
           <span className="font-medium text-sm text-foreground">{name}</span>
         </div>
         {hasOutput ? (
           <CheckCircle className="h-4 w-4 text-success" />
         ) : (
-          <span className="text-xs text-foreground-subtle">Pending</span>
+          <span className="text-xs text-foreground">Pending</span>
         )}
       </button>
       {isExpanded && hasOutput && (
@@ -675,7 +675,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between text-xs gap-4">
       <span className="text-foreground-muted shrink-0">{label}</span>
-      <span className="font-medium text-right">{value}</span>
+      <span className="font-medium text-foreground text-right">{value}</span>
     </div>
   );
 }
@@ -692,7 +692,7 @@ function CollapsibleBlock({
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="text-xs text-foreground-subtle hover:text-foreground flex items-center gap-1"
+        className="text-xs text-foreground hover:opacity-80 flex items-center gap-1"
       >
         {expanded ? (
           <ChevronDown className="h-3 w-3" />
@@ -729,7 +729,7 @@ function CodeBlock({
         {expanded ? "Hide code" : label}
       </button>
       {expanded && (
-        <pre className="mt-1 text-[11px] text-foreground-muted bg-background-tertiary p-2 rounded overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap break-words border border-border">
+        <pre className="mt-1 font-mono text-[11px] text-foreground-muted bg-background-tertiary p-2 rounded overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap break-words border border-border">
           {content}
         </pre>
       )}
@@ -744,7 +744,7 @@ function ReasoningBlock({ text }: { text: string }) {
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="text-xs text-foreground-subtle hover:text-foreground flex items-center gap-1"
+        className="text-xs text-foreground hover:opacity-80 flex items-center gap-1"
       >
         {expanded ? (
           <ChevronDown className="h-3 w-3" />
