@@ -10,11 +10,7 @@ import {
   Info,
 } from "lucide-react";
 import { useProjectStore } from "@/lib/store";
-import {
-  cn,
-  getPriorityColor,
-  getSeverityColor,
-} from "@/lib/utils";
+import { cn, getPriorityColor, getSeverityColor } from "@/lib/utils";
 import type { Requirement, Component } from "@/lib/api";
 
 const DEFAULT_VISIBLE_COUNT = 5;
@@ -83,9 +79,6 @@ function CollapsibleComponentItem({ comp }: { comp: Component }) {
         )}
         <span className="font-medium">{comp.name}</span>
         <span className="text-foreground-subtle">{comp.type}</span>
-        <span className="text-foreground-muted ml-auto">
-          {expanded ? "Hide description" : "Show description"}
-        </span>
       </button>
       {expanded && (
         <div className="mt-2 pl-5 border-l-2 border-border space-y-1">
@@ -245,7 +238,9 @@ export function AgentOutputs() {
                       className="text-xs p-2 bg-background-tertiary rounded"
                     >
                       <span className="font-mono">{fs.path}</span>
-                      <p className="mt-0.5 text-foreground-muted">{fs.purpose}</p>
+                      <p className="mt-0.5 text-foreground-muted">
+                        {fs.purpose}
+                      </p>
                       {fs.dependencies?.length > 0 && (
                         <p className="mt-0.5 text-foreground-subtle">
                           deps: {fs.dependencies.join(", ")}
@@ -276,25 +271,25 @@ export function AgentOutputs() {
                             typeof val === "object" &&
                             !Array.isArray(val) && (
                               <ul className="mt-1 text-foreground-muted space-y-0.5 list-none">
-                                {Object.entries(val as Record<string, unknown>).map(
-                                  ([k, v]) => (
-                                    <li key={k}>
-                                      <span className="text-foreground-subtle">
-                                        {k}:
-                                      </span>{" "}
-                                      {typeof v === "string"
-                                        ? v
-                                        : JSON.stringify(v)}
-                                    </li>
-                                  )
-                                )}
+                                {Object.entries(
+                                  val as Record<string, unknown>,
+                                ).map(([k, v]) => (
+                                  <li key={k}>
+                                    <span className="text-foreground-subtle">
+                                      {k}:
+                                    </span>{" "}
+                                    {typeof v === "string"
+                                      ? v
+                                      : JSON.stringify(v)}
+                                  </li>
+                                ))}
                               </ul>
                             )}
                           {val && typeof val === "string" && (
                             <p className="mt-1 text-foreground-muted">{val}</p>
                           )}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
                 </div>
@@ -310,7 +305,7 @@ export function AgentOutputs() {
                       {JSON.stringify(
                         architect_output.database_schema,
                         null,
-                        2
+                        2,
                       )}
                     </pre>
                   }
@@ -417,10 +412,7 @@ export function AgentOutputs() {
                         {file.file_purpose}
                       </p>
                     )}
-                    <CodeBlock
-                      content={file.file_content}
-                      label="View code"
-                    />
+                    <CodeBlock content={file.file_content} label="View code" />
                   </div>
                 )}
               />
@@ -471,8 +463,8 @@ export function AgentOutputs() {
                       qa_output.quality_score >= 80
                         ? "bg-success"
                         : qa_output.quality_score >= 60
-                        ? "bg-warning"
-                        : "bg-error"
+                          ? "bg-warning"
+                          : "bg-error",
                     )}
                     style={{ width: `${qa_output.quality_score}%` }}
                   />
@@ -625,9 +617,7 @@ function AgentSection({
           ) : (
             <ChevronRight className="h-4 w-4 text-foreground-muted" />
           )}
-          <span className="font-medium text-sm text-foreground">
-            {name}
-          </span>
+          <span className="font-medium text-sm text-foreground">{name}</span>
         </div>
         {hasOutput ? (
           <CheckCircle className="h-4 w-4 text-success" />
@@ -635,7 +625,9 @@ function AgentSection({
           <span className="text-xs text-foreground-subtle">Pending</span>
         )}
       </button>
-      {isExpanded && hasOutput && <div className="px-4 py-4 border-t border-border">{children}</div>}
+      {isExpanded && hasOutput && (
+        <div className="px-4 py-4 border-t border-border">{children}</div>
+      )}
     </div>
   );
 }
@@ -790,7 +782,7 @@ function ApprovalBadge({ status }: { status: string }) {
     <div
       className={cn(
         "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium",
-        config.color
+        config.color,
       )}
     >
       <Icon className="h-3 w-3" />
