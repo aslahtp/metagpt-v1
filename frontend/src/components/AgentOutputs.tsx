@@ -267,27 +267,26 @@ export function AgentOutputs() {
                           className="text-xs p-2 bg-background-tertiary rounded"
                         >
                           <span className="font-mono font-medium">{key}</span>
-                          {val &&
-                            typeof val === "object" &&
-                            !Array.isArray(val) && (
-                              <ul className="mt-1 text-foreground-muted space-y-0.5 list-none">
-                                {Object.entries(
-                                  val as Record<string, unknown>,
-                                ).map(([k, v]) => (
-                                  <li key={k}>
-                                    <span className="text-foreground-subtle">
-                                      {k}:
-                                    </span>{" "}
-                                    {typeof v === "string"
-                                      ? v
-                                      : JSON.stringify(v)}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          {val && typeof val === "string" && (
+                          {typeof val === "object" &&
+                          val !== null &&
+                          !Array.isArray(val) ? (
+                            <ul className="mt-1 text-foreground-muted space-y-0.5 list-none">
+                              {Object.entries(
+                                val as Record<string, unknown>,
+                              ).map(([k, v]) => (
+                                <li key={k}>
+                                  <span className="text-foreground-subtle">
+                                    {k}:
+                                  </span>{" "}
+                                  {typeof v === "string"
+                                    ? v
+                                    : JSON.stringify(v)}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : typeof val === "string" ? (
                             <p className="mt-1 text-foreground-muted">{val}</p>
-                          )}
+                          ) : null}
                         </div>
                       ),
                     )}
