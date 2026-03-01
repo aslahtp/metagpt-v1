@@ -1,6 +1,6 @@
 "use client";
 
-import { useProjectStore } from "@/lib/store";
+import { useProjectStore, getDefaultEditorThemeForUi } from "@/lib/store";
 import { registerCustomThemes } from "@/lib/editorThemes";
 import dynamic from "next/dynamic";
 import { Copy, Check } from "lucide-react";
@@ -11,8 +11,18 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 }) as any;
 
 export function CodeViewer() {
-  const { selectedFile, fileContent, fileLanguage, generatedFiles, editorTheme } =
-    useProjectStore();
+  const {
+    selectedFile,
+    fileContent,
+    fileLanguage,
+    generatedFiles,
+    editorTheme,
+    editorThemeAuto,
+    uiTheme,
+  } = useProjectStore();
+  const effectiveTheme = editorThemeAuto
+    ? getDefaultEditorThemeForUi(uiTheme)
+    : editorTheme;
   const [copied, setCopied] = useState(false);
   const themesRegistered = useRef(false);
 
@@ -91,7 +101,7 @@ export function CodeViewer() {
         <MonacoEditor
           value={content}
           language={language}
-          theme={editorTheme}
+          theme={effectiveTheme}
           beforeMount={handleBeforeMount}
           options={{
             readOnly: true,

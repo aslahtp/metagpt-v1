@@ -496,8 +496,12 @@ export function AgentOutputs() {
                       className="text-xs p-2 bg-background-tertiary rounded"
                     >
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-foreground font-medium">{tc.id}</span>
-                        <span className="font-medium text-foreground">{tc.name}</span>
+                        <span className="text-foreground font-medium">
+                          {tc.id}
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {tc.name}
+                        </span>
                         <span className="text-foreground-muted">
                           ({tc.test_type})
                         </span>
@@ -506,7 +510,7 @@ export function AgentOutputs() {
                         {tc.description}
                       </p>
                       {tc.target_file && (
-                        <p className="mt-0.5 font-mono text-[11px] text-foreground-muted">
+                        <p className="mt-0.5 font-mono text-[11px] text-foreground-muted min-w-0 overflow-hidden break-all">
                           target: {tc.target_file}
                         </p>
                       )}
@@ -550,7 +554,7 @@ export function AgentOutputs() {
                       <SeverityIcon severity={note.severity} />
                       <div className="min-w-0">
                         {(note.file_path || note.category) && (
-                          <p className="text-foreground-subtle text-[11px] mb-0.5">
+                          <p className="font-base font-medium dark:font-semibold text-foreground mb-0.5">
                             {[note.file_path, note.category]
                               .filter(Boolean)
                               .join(" · ")}
@@ -728,7 +732,7 @@ function CodeBlock({
         {expanded ? "Hide code" : label}
       </button>
       {expanded && (
-        <pre className="mt-1 font-mono text-[11px] text-foreground-muted bg-background-tertiary p-2 rounded overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap break-words border border-border">
+        <pre className="mt-1 font-mono text-[11px] text-foreground bg-background p-2 rounded overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap break-words border border-border">
           {content}
         </pre>
       )}

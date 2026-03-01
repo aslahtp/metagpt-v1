@@ -36,6 +36,7 @@ import { CodeViewer } from "@/components/CodeViewer";
 import { ChatPanel } from "@/components/ChatPanel";
 import { AgentOutputs } from "@/components/AgentOutputs";
 import { PreviewFrame } from "@/components/PreviewFrame";
+import { SettingsToggle } from "@/components/SettingsToggle";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -72,6 +73,8 @@ export default function ProjectPage() {
   const {
     editorTheme,
     setEditorTheme,
+    editorThemeAuto,
+    setEditorThemeAuto,
     hideNodeModules,
     setHideNodeModules,
     uiTheme,
@@ -440,32 +443,14 @@ export default function ProjectPage() {
                       /* ── Main Settings View ── */
                       <div className="px-1.5 py-1.5 space-y-0.5">
                         {/* Hide node_modules */}
-                        <button
-                          onClick={() => setHideNodeModules(!hideNodeModules)}
-                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2.5 rounded-lg text-left transition-all duration-150 hover:bg-background-tertiary group"
-                        >
-                          <div className="flex items-center gap-2.5">
+                        <SettingsToggle
+                          label="Hide node_modules"
+                          checked={hideNodeModules}
+                          onToggle={() => setHideNodeModules(!hideNodeModules)}
+                          icon={
                             <FolderX className="h-3.5 w-3.5 text-foreground-subtle group-hover:text-foreground-muted shrink-0" />
-                            <span className="text-xs font-medium text-foreground-muted group-hover:text-foreground">
-                              Hide node_modules
-                            </span>
-                          </div>
-                          <div
-                            className={`relative w-8 h-[18px] rounded-full transition-colors duration-200 shrink-0 ${
-                              hideNodeModules
-                                ? "bg-accent"
-                                : "bg-foreground-subtle/30"
-                            }`}
-                          >
-                            <div
-                              className={`absolute top-[2px] h-[14px] w-[14px] rounded-full shadow-sm transition-all duration-200 border ${
-                                hideNodeModules
-                                  ? "translate-x-[16px] bg-background-secondary border-white/20"
-                                  : "translate-x-[2px] bg-background-secondary border-foreground-subtle/30"
-                              }`}
-                            />
-                          </div>
-                        </button>
+                          }
+                        />
 
                         {/* Editor Theme → opens sub-panel */}
                         <button
@@ -480,7 +465,9 @@ export default function ProjectPage() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[10px] text-foreground-subtle truncate max-w-[72px]">
-                              {EDITOR_THEMES.find((t) => t.id === editorTheme)?.label ?? "Default"}
+                              {editorThemeAuto
+                                ? "Auto"
+                                : EDITOR_THEMES.find((t) => t.id === editorTheme)?.label ?? "Default"}
                             </span>
                             <ChevronRight className="h-3.5 w-3.5 text-foreground-subtle shrink-0" />
                           </div>
@@ -500,62 +487,68 @@ export default function ProjectPage() {
                           </span>
                         </button>
 
-                        {/* Theme list grouped by base */}
+                        {/* Auto toggle + theme list (list hidden when Auto is on) */}
                         <div className="px-1.5 py-1.5 max-h-72 overflow-y-auto space-y-0.5">
-                          {(["vs-dark", "vs"] as const).map((base) => {
-                            const themes = EDITOR_THEMES.filter((t) => t.base === base);
-                            return (
-                              <div key={base}>
-                                <p className="px-2.5 pt-1.5 pb-0.5 text-[10px] font-semibold uppercase tracking-widest text-foreground-subtle">
-                                  {base === "vs-dark" ? "Dark" : "Light"}
-                                </p>
-                                {themes.map((theme) => (
-                            <button
-                              key={theme.id}
-                              onClick={() => setEditorTheme(theme.id)}
-                              className={`w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-left transition-all duration-150 group ${
-                                editorTheme === theme.id
-                                  ? "bg-accent/10"
-                                  : "hover:bg-background-tertiary"
-                              }`}
-                            >
-                              {/* Color Swatch */}
-                              <div
-                                className="w-5 h-5 rounded-md shrink-0 border border-black/10 dark:border-white/10 flex items-center justify-center overflow-hidden"
-                                style={{ backgroundColor: theme.swatch[0] }}
-                              >
-                                <div className="flex flex-col items-center gap-px">
-                                  <div
-                                    className="w-2.5 h-[2px] rounded-full"
-                                    style={{ backgroundColor: theme.swatch[2] }}
-                                  />
-                                  <div
-                                    className="w-2 h-[2px] rounded-full opacity-60"
-                                    style={{ backgroundColor: theme.swatch[1] }}
-                                  />
+                          <SettingsToggle
+                            label="Auto"
+                            checked={editorThemeAuto}
+                            onToggle={() => setEditorThemeAuto(!editorThemeAuto)}
+                          />
+
+                          {/* Theme list - only when Auto is off */}
+                          {!editorThemeAuto &&
+                            (["vs-dark", "vs"] as const).map((base) => {
+                              const themes = EDITOR_THEMES.filter((t) => t.base === base);
+                              return (
+                                <div key={base}>
+                                  <p className="px-2.5 pt-1.5 pb-0.5 text-[10px] font-semibold uppercase tracking-widest text-foreground-subtle">
+                                    {base === "vs-dark" ? "Dark" : "Light"}
+                                  </p>
+                                  {themes.map((theme) => (
+                                    <button
+                                      key={theme.id}
+                                      onClick={() => {
+                                        setEditorThemeAuto(false);
+                                        setEditorTheme(theme.id);
+                                      }}
+                                      className={`w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-left transition-all duration-150 group ${
+                                        editorTheme === theme.id
+                                          ? "bg-accent/10"
+                                          : "hover:bg-background-tertiary"
+                                      }`}
+                                    >
+                                      <div
+                                        className="w-5 h-5 rounded-md shrink-0 border border-black/10 dark:border-white/10 flex items-center justify-center overflow-hidden"
+                                        style={{ backgroundColor: theme.swatch[0] }}
+                                      >
+                                        <div className="flex flex-col items-center gap-px">
+                                          <div
+                                            className="w-2.5 h-[2px] rounded-full"
+                                            style={{ backgroundColor: theme.swatch[2] }}
+                                          />
+                                          <div
+                                            className="w-2 h-[2px] rounded-full opacity-60"
+                                            style={{ backgroundColor: theme.swatch[1] }}
+                                          />
+                                        </div>
+                                      </div>
+                                      <span
+                                        className={`text-xs font-medium flex-1 ${
+                                          editorTheme === theme.id
+                                            ? "text-accent"
+                                            : "text-foreground-muted group-hover:text-foreground"
+                                        }`}
+                                      >
+                                        {theme.label}
+                                      </span>
+                                      {editorTheme === theme.id && (
+                                        <Check className="h-3.5 w-3.5 text-accent shrink-0" />
+                                      )}
+                                    </button>
+                                  ))}
                                 </div>
-                              </div>
-
-                              {/* Label */}
-                              <span
-                                className={`text-xs font-medium flex-1 ${
-                                  editorTheme === theme.id
-                                    ? "text-accent"
-                                    : "text-foreground-muted group-hover:text-foreground"
-                                }`}
-                              >
-                                {theme.label}
-                              </span>
-
-                              {/* Check Mark */}
-                              {editorTheme === theme.id && (
-                                <Check className="h-3.5 w-3.5 text-accent shrink-0" />
-                              )}
-                            </button>
-                                ))}
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
                         </div>
                       </div>
                     )}

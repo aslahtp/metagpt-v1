@@ -4,27 +4,25 @@
 
 import { create } from "zustand";
 import type { Project, FileTreeNode, ChatMessage, GeneratedFile } from "./api";
-import { DEFAULT_THEME } from "./editorThemes";
 
-// Helper to safely read editor theme from localStorage,
-// with UI-theme-aware defaults.
+const EDITOR_THEME_SESSION_KEY = "metagpt-editor-theme-session";
+
+/** Default editor theme by UI theme: dark → metagpt-home, light → vs */
+export function getDefaultEditorThemeForUi(uiTheme: "dark" | "light"): string {
+  return uiTheme === "light" ? "vs" : "metagpt-home";
+}
+
+// Helper to get initial editor theme: session override if set, else default for current UI theme.
 function getStoredTheme(): string {
-  if (typeof window === "undefined") return DEFAULT_THEME;
+  if (typeof window === "undefined") return "metagpt-home";
   try {
-    const storedEditor = localStorage.getItem("metagpt-editor-theme");
-    if (storedEditor) return storedEditor;
+    const sessionOverride = sessionStorage.getItem(EDITOR_THEME_SESSION_KEY);
+    if (sessionOverride) return sessionOverride;
 
-    // No explicit editor theme set – fall back based on UI theme
-    const uiTheme = localStorage.getItem("metagpt-ui-theme");
-    if (uiTheme === "light") {
-      // Light UI → use built-in VS Light
-      return "vs";
-    }
-
-    // Dark (or unset) UI → use MetaGPT home dark theme
-    return "metagpt-home";
+    const uiTheme = getStoredUiTheme();
+    return getDefaultEditorThemeForUi(uiTheme);
   } catch {
-    return DEFAULT_THEME;
+    return "metagpt-home";
   }
 }
 
@@ -100,6 +98,9 @@ interface ProjectStore {
   // Editor theme
   editorTheme: string;
   setEditorTheme: (theme: string) => void;
+  /** When true, editor theme follows UI theme (dark → metagpt-home, light → vs). Default true. */
+  editorThemeAuto: boolean;
+  setEditorThemeAuto: (auto: boolean) => void;
 
   // UI theme (light/dark)
   uiTheme: "dark" | "light";
@@ -194,14 +195,17 @@ export const useProjectStore = create<ProjectStore>((set) => ({
   addSandboxLog: (log) =>
     set((state) => ({ sandboxLogs: [...state.sandboxLogs, log] })),
 
-  // Editor theme (persisted to localStorage)
+  // Editor theme: default by UI theme when Auto is on; user override in session when Auto is off.
   editorTheme: getStoredTheme(),
   setEditorTheme: (theme) => {
     try {
-      localStorage.setItem("metagpt-editor-theme", theme);
+      sessionStorage.setItem(EDITOR_THEME_SESSION_KEY, theme);
     } catch {}
     set({ editorTheme: theme });
   },
+  /** Not persisted: on refresh or new tab, always starts true (Auto). */
+  editorThemeAuto: true,
+  setEditorThemeAuto: (auto) => set({ editorThemeAuto: auto }),
 
   // UI theme (persisted to localStorage)
   uiTheme: getStoredUiTheme(),
@@ -209,21 +213,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
     try {
       localStorage.setItem("metagpt-ui-theme", theme);
     } catch {}
-
-    // Keep Monaco editor theme in sync with UI theme
-    // when using one of the default themes.
-    set((state) => {
-      let nextEditorTheme = state.editorTheme;
-
-      if (state.editorTheme === "metagpt-home" || state.editorTheme === "vs") {
-        nextEditorTheme = theme === "light" ? "vs" : "metagpt-home";
-      }
-
-      return {
-        uiTheme: theme,
-        editorTheme: nextEditorTheme,
-      };
-    });
+    set({ uiTheme: theme });
   },
 
   // File explorer settings
