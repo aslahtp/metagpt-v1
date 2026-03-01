@@ -1,5 +1,7 @@
 """MongoDB connection and initialization using Beanie ODM."""
 
+from urllib.parse import urlparse
+
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from beanie import init_beanie
@@ -21,4 +23,8 @@ async def init_db() -> None:
         document_models=[User, ProjectDocument],
     )
 
-    print(f"Connected to MongoDB: {settings.mongodb_uri}/{settings.mongodb_db}")
+    parsed = urlparse(settings.mongodb_uri)
+    # Show only host (no user/password): for mongodb+srv, netloc is user:pass@host
+    netloc = parsed.netloc or ""
+    host = netloc.split("@")[-1] if "@" in netloc else (parsed.hostname or netloc)
+    print(f"Connected to MongoDB: {host}/{settings.mongodb_db}")
