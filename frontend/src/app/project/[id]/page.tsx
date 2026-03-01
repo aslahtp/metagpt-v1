@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -95,6 +95,62 @@ export default function ProjectPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsView, setSettingsView] = useState<"main" | "themes">("main");
   const settingsRef = useRef<HTMLDivElement>(null);
+  const rightPanelScrollRef = useRef<HTMLDivElement>(null);
+  const [savedRightPanelScroll, setSavedRightPanelScroll] = useState<
+    Record<"timeline" | "outputs" | "chat", number>
+  >({ timeline: 0, outputs: 0, chat: 0 });
+  const rightPanelTabBarRef = useRef<HTMLDivElement>(null);
+  const rightPanelTabRefs = useRef<(HTMLButtonElement | null)[]>([
+    null,
+    null,
+    null,
+  ]);
+  const rightPanelTabOrder: ("timeline" | "outputs" | "chat")[] = [
+    "timeline",
+    "outputs",
+    "chat",
+  ];
+  const [rightPanelUnderline, setRightPanelUnderline] = useState({
+    left: 0,
+    width: 0,
+  });
+
+  // Animate the tab underline to the active tab
+  useLayoutEffect(() => {
+    const idx = rightPanelTabOrder.indexOf(rightPanelTab);
+    const btn = rightPanelTabRefs.current[idx];
+    const bar = rightPanelTabBarRef.current;
+    if (btn && bar) {
+      setRightPanelUnderline({
+        left: btn.offsetLeft,
+        width: btn.offsetWidth,
+      });
+    }
+  }, [rightPanelTab]);
+
+  // Restore scroll position when switching back to a right-panel tab
+  useEffect(() => {
+    const el = rightPanelScrollRef.current;
+    if (!el) return;
+    const saved = savedRightPanelScroll[rightPanelTab];
+    const id = requestAnimationFrame(() => {
+      el.scrollTop = saved;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [rightPanelTab]);
+
+  function setRightPanelTabWithScroll(
+    tab: "timeline" | "outputs" | "chat"
+  ) {
+    const el = rightPanelScrollRef.current;
+    if (el) {
+      setSavedRightPanelScroll((prev) => ({
+        ...prev,
+        [rightPanelTab]: el.scrollTop,
+      }));
+    }
+    setRightPanelTab(tab);
+  }
 
   // Close settings dropdown on click outside
   useEffect(() => {
@@ -625,41 +681,67 @@ export default function ProjectPage() {
         {showRightPanel && (
         <div className="w-80 border-l border-border flex flex-col shrink-0">
           {/* Tabs */}
-          <div className="flex border-b border-border shrink-0">
+          <div
+            ref={rightPanelTabBarRef}
+            className="relative flex border-b border-border shrink-0"
+          >
             <button
-              onClick={() => setRightPanelTab("timeline")}
-              className={`flex-1 px-3 py-2 text-sm font-medium ${
+              ref={(el) => {
+                rightPanelTabRefs.current[0] = el;
+              }}
+              type="button"
+              onClick={() => setRightPanelTabWithScroll("timeline")}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
                 rightPanelTab === "timeline"
-                  ? "text-accent border-b-2 border-accent"
+                  ? "text-accent"
                   : "text-foreground-muted hover:text-foreground"
               }`}
             >
               Timeline
             </button>
             <button
-              onClick={() => setRightPanelTab("outputs")}
-              className={`flex-1 px-3 py-2 text-sm font-medium ${
+              ref={(el) => {
+                rightPanelTabRefs.current[1] = el;
+              }}
+              type="button"
+              onClick={() => setRightPanelTabWithScroll("outputs")}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
                 rightPanelTab === "outputs"
-                  ? "text-accent border-b-2 border-accent"
+                  ? "text-accent"
                   : "text-foreground-muted hover:text-foreground"
               }`}
             >
               Outputs
             </button>
             <button
-              onClick={() => setRightPanelTab("chat")}
-              className={`flex-1 px-3 py-2 text-sm font-medium ${
+              ref={(el) => {
+                rightPanelTabRefs.current[2] = el;
+              }}
+              type="button"
+              onClick={() => setRightPanelTabWithScroll("chat")}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
                 rightPanelTab === "chat"
-                  ? "text-accent border-b-2 border-accent"
+                  ? "text-accent"
                   : "text-foreground-muted hover:text-foreground"
               }`}
             >
               Chat
             </button>
+            <div
+              className="absolute bottom-0 h-0.5 bg-accent transition-all duration-200 ease-out"
+              style={{
+                left: rightPanelUnderline.left,
+                width: rightPanelUnderline.width,
+              }}
+              aria-hidden
+            />
           </div>
 
           {/* Tab Content */}
-          <div className="flex-1 min-h-0 overflow-auto flex flex-col">
+          <div
+            ref={rightPanelScrollRef}
+            className="flex-1 min-h-0 overflow-auto flex flex-col"
+          >
             {rightPanelTab === "timeline" && <ExecutionTimeline />}
             {rightPanelTab === "outputs" && <AgentOutputs />}
             {rightPanelTab === "chat" && (
