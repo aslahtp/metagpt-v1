@@ -110,6 +110,14 @@ interface ProjectStore {
   hideNodeModules: boolean;
   setHideNodeModules: (hide: boolean) => void;
 
+  // Pending chat input (set by other components to pre-fill the chat input)
+  pendingChatInput: string | null;
+  setPendingChatInput: (input: string | null) => void;
+
+  // Signal to navigate to the chat tab
+  pendingChatNav: boolean;
+  setPendingChatNav: (nav: boolean) => void;
+
   // Reset
   reset: () => void;
 }
@@ -160,6 +168,14 @@ export const useProjectStore = create<ProjectStore>((set) => ({
         m.id === id ? { ...m, ...updates } : m
       ),
     })),
+
+  // Pending chat input
+  pendingChatInput: null,
+  setPendingChatInput: (input) => set({ pendingChatInput: input }),
+
+  // Pending chat nav
+  pendingChatNav: false,
+  setPendingChatNav: (nav) => set({ pendingChatNav: nav }),
 
   // Agent outputs
   expandedAgents: new Set(["manager", "architect", "engineer", "qa"]),
@@ -241,5 +257,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       sandboxId: null,
       sandboxLoading: false,
       sandboxLogs: [],
+      pendingChatInput: null,
+      pendingChatNav: false,
     }),
 }));

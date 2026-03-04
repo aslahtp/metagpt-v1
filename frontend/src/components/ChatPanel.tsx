@@ -34,6 +34,8 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
     updateChatMessage,
     project,
     setProject,
+    pendingChatInput,
+    setPendingChatInput,
   } = useProjectStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [autoMode, setAutoMode] = useState(true);
@@ -89,6 +91,16 @@ export function ChatPanel({ projectId, embedded = false, onFilesModified }: Chat
   };
 
 
+
+  // Consume pendingChatInput set by other components (e.g. QA "Fix" button)
+  useEffect(() => {
+    if (pendingChatInput) {
+      setMessage(pendingChatInput);
+      setPendingChatInput(null);
+      setIsExpanded(true);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [pendingChatInput, setPendingChatInput]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {

@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   AlertCircle,
   Info,
+  MessageSquarePlus,
 } from "lucide-react";
 import { useProjectStore } from "@/lib/store";
 import { cn, getPriorityColor, getSeverityColor } from "@/lib/utils";
@@ -539,36 +540,7 @@ export function AgentOutputs() {
 
             {/* Validation Notes */}
             {qa_output.validation_notes.length > 0 && (
-              <div>
-                <h4 className="text-xs font-medium text-foreground-muted mb-2">
-                  Validation Notes
-                </h4>
-                <ExpandableList
-                  items={qa_output.validation_notes}
-                  label="notes"
-                  renderItem={(note, i) => (
-                    <div
-                      key={i}
-                      className="text-xs p-2 bg-background-tertiary rounded flex items-start gap-2"
-                    >
-                      <SeverityIcon severity={note.severity} />
-                      <div className="min-w-0">
-                        {(note.file_path || note.category) && (
-                          <p className="font-base font-medium dark:font-semibold text-foreground mb-0.5">
-                            {[note.file_path, note.category]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </p>
-                        )}
-                        <p className="text-foreground">{note.description}</p>
-                        <p className="text-foreground-muted mt-1">
-                          {note.recommendation}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                />
-              </div>
+              <ValidationNotesList notes={qa_output.validation_notes} />
             )}
 
             {/* Code Review Summary */}
@@ -790,6 +762,83 @@ function ApprovalBadge({ status }: { status: string }) {
     >
       <Icon className="h-3 w-3" />
       {status}
+    </div>
+  );
+}
+
+function ValidationNotesList({
+  notes,
+}: {
+  notes: Array<{
+    severity: string;
+    file_path?: string;
+    category?: string;
+    description: string;
+    recommendation?: string;
+  }>;
+}) {
+  const { setPendingChatInput, setPendingChatNav } = useProjectStore();
+
+  const handleFixInChat = (note: {
+    severity: string;
+    file_path?: string;
+    category?: string;
+    description: string;
+    recommendation?: string;
+  }) => {
+    const parts: string[] = [];
+    const location = [note.file_path, note.category].filter(Boolean).join(" · ");
+    if (location) parts.push(`[${note.severity.toUpperCase()}] ${location}`);
+    parts.push(note.description);
+    if (note.recommendation) parts.push(`Recommendation: ${note.recommendation}`);
+    const prefill = `Fix the following QA validation issue:\n\n${parts.join("\n")}`;
+    setPendingChatInput(prefill);
+    setPendingChatNav(true);
+  };
+
+  return (
+    <div>
+      <h4 className="text-xs font-medium text-foreground-muted mb-2">
+        Validation Notes
+      </h4>
+      <ExpandableList
+        items={notes}
+        label="notes"
+        renderItem={(note, i) => (
+          <div
+            key={i}
+            className="text-xs p-2 pb-8 bg-background-tertiary rounded relative group"
+          >
+            <div className="flex items-start gap-2">
+              <SeverityIcon severity={note.severity} />
+              <div className="min-w-0 flex-1">
+                {(note.file_path || note.category) && (
+                  <p className="font-base font-medium dark:font-semibold text-foreground mb-0.5 break-all">
+                    {[note.file_path, note.category]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
+                <p className="text-foreground">{note.description}</p>
+                {note.recommendation && (
+                  <p className="text-foreground-muted mt-1">
+                    {note.recommendation}
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleFixInChat(note)}
+              title="Pre-fill chat to fix this issue"
+              className="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-1 rounded bg-background-secondary text-accent ring-1 ring-accent/30 hover:ring-accent/60 transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-medium">Fix</span>
+            </button>
+          </div>
+        )}
+      />
     </div>
   );
 }

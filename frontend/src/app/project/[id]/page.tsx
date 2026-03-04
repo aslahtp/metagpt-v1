@@ -79,6 +79,8 @@ export default function ProjectPage() {
     setHideNodeModules,
     uiTheme,
     setUiTheme,
+    pendingChatNav,
+    setPendingChatNav,
   } = useProjectStore();
 
   const [rightPanelTab, setRightPanelTab] = useState<
@@ -151,6 +153,15 @@ export default function ProjectPage() {
     }
     setRightPanelTab(tab);
   }
+
+  // Switch to chat tab when QA "Fix" button is clicked from AgentOutputs
+  useEffect(() => {
+    if (pendingChatNav) {
+      setRightPanelTabWithScroll("chat");
+      setShowRightPanel(true);
+      setPendingChatNav(false);
+    }
+  }, [pendingChatNav, setPendingChatNav]);
 
   // Close settings dropdown on click outside
   useEffect(() => {
