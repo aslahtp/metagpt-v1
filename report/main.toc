@@ -15,15 +15,14 @@
 \contentsline {subsection}{\numberline {2.2.4}Auto-GPT for Online Decision Making (2023)}{6}{}%
 \contentsline {subsection}{\numberline {2.2.5}MapCoder: Multi-Agent Code Generation for Competitive Problem Solving (2024)}{6}{}%
 \contentsline {section}{\numberline {2.3}Literature Matrix}{7}{}%
-\contentsline {section}{\numberline {2.4}Research Gaps and Our Contribution}{10}{}%
-\contentsline {section}{\numberline {2.5}Our MetaGPT Framework: Addressing the Gaps}{10}{}%
+\contentsline {section}{\numberline {2.4}MetaGPT Framework}{10}{}%
+\contentsline {section}{\numberline {2.5}Research Gaps and Our Contribution}{11}{}%
 \contentsline {chapter}{\numberline {3}Problem Identification And Objectives}{12}{}%
 \contentsline {section}{\numberline {3.1}Problem Statement}{12}{}%
 \contentsline {section}{\numberline {3.2}Objectives}{12}{}%
 \contentsline {section}{\numberline {3.3}Scope and Applications}{13}{}%
 \contentsline {section}{\numberline {3.4}Feasibility Analysis}{13}{}%
 \contentsline {section}{\numberline {3.5}Project Plan}{14}{}%
-\contentsline {section}{\numberline {3.6}SRS Document}{16}{}%
 \contentsline {chapter}{\numberline {4}Methodology}{17}{}%
 \contentsline {section}{\numberline {4.1}High Level Design}{17}{}%
 \contentsline {subsection}{\numberline {4.1.1}Block Diagram}{17}{}%
@@ -31,7 +30,7 @@
 \contentsline {section}{\numberline {4.2}Detailed Design}{18}{}%
 \contentsline {subsection}{\numberline {4.2.1}Module 1: Backend API Layer}{18}{}%
 \contentsline {subsection}{\numberline {4.2.2}Module 2: Agent Orchestration and Graph}{19}{}%
-\contentsline {subsection}{\numberline {4.2.3}Module 3: Storage and Project Management}{19}{}%
+\contentsline {subsection}{\numberline {4.2.3}Module 3: Storage and Project Management}{20}{}%
 \contentsline {subsection}{\numberline {4.2.4}Module 4: Frontend User Interface}{20}{}%
 \contentsline {subsection}{\numberline {4.2.5}Module 5: LLM, SOP, and Retrieval}{21}{}%
 \contentsline {section}{\numberline {4.3}Data Flow Diagram}{21}{}%
@@ -40,15 +39,15 @@
 \contentsline {subsection}{\numberline {4.3.3}Level 2 DFD}{23}{}%
 \contentsline {section}{\numberline {4.4}ER Diagram}{24}{}%
 \contentsline {section}{\numberline {4.5}UI Design}{24}{}%
-\contentsline {chapter}{\numberline {5}Implementation And Results}{27}{}%
-\contentsline {section}{\numberline {5.1}Software And Hardware Requirements}{27}{}%
-\contentsline {section}{\numberline {5.2}Implementation Details}{27}{}%
-\contentsline {section}{\numberline {5.3}Testing}{31}{}%
-\contentsline {subsection}{\numberline {5.3.1}Unit Testing}{31}{}%
-\contentsline {subsection}{\numberline {5.3.2}Integration Testing}{34}{}%
-\contentsline {subsection}{\numberline {5.3.3}System Testing}{38}{}%
-\contentsline {section}{\numberline {5.4}Experimental Results \& Discussion}{39}{}%
-\contentsline {chapter}{\numberline {6}Conclusion}{41}{}%
-\contentsline {chapter}{\numberline {7}Future Scope}{42}{}%
-\contentsline {chapter}{References}{43}{}%
-\contentsline {chapter}{Appendix}{45}{}%
+\contentsline {chapter}{\numberline {5}Implementation And Results}{33}{}%
+\contentsline {section}{\numberline {5.1}Software And Hardware Requirements}{33}{}%
+\contentsline {section}{\numberline {5.2}Implementation Details}{33}{}%
+\contentsline {section}{\numberline {5.3}Testing}{37}{}%
+\contentsline {subsection}{\numberline {5.3.1}Unit Testing}{37}{}%
+\contentsline {subsection}{\numberline {5.3.2}Integration Testing}{40}{}%
+\contentsline {subsection}{\numberline {5.3.3}System Testing}{44}{}%
+\contentsline {section}{\numberline {5.4}Experimental Results \& Discussion}{46}{}%
+\contentsline {chapter}{\numberline {6}Conclusion}{47}{}%
+\contentsline {chapter}{\numberline {7}Future Scope}{48}{}%
+\contentsline {chapter}{References}{49}{}%
+\contentsline {chapter}{Appendix}{51}{}%

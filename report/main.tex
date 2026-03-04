@@ -10,7 +10,7 @@
 \usepackage{caption}    
 \usepackage{float}      
 \usepackage{longtable}
-\usepackage{url}
+\usepackage{xurl}
 \usepackage{amsmath}    
 \usepackage{pdfpages}   
 \usepackage{amssymb}
@@ -19,6 +19,20 @@
 \usepackage{subcaption}
 \usepackage{ragged2e}
 \usepackage{microtype}
+\usepackage{fancyhdr}
+
+% Page number at bottom right
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[R]{\makebox[0pt][l]{\hspace{2.2cm}\thepage}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{%
+    \fancyhf{}%
+    \fancyfoot[R]{\makebox[0pt][l]{\hspace{2.2cm}\thepage}}%
+    \renewcommand{\headrulewidth}{0pt}%
+    \renewcommand{\footrulewidth}{0pt}%
+}
 \numberwithin{figure}{chapter}
 \numberwithin{table}{chapter}
 
@@ -33,6 +47,7 @@
 \setcounter{tocdepth}{2}
 
 \begin{document}
+\setlength{\emergencystretch}{3em}
 
 % ----------------------------------------------------------
 % TITLE PAGE (No Page Number)
@@ -40,8 +55,8 @@
 \begin{titlepage}
     \centering
     \vspace*{2cm}
-    {\LARGE \textbf{PROJECT}}\\[0.2cm]
-    {\LARGE \textbf{Title}}\\[2cm]
+    {\LARGE \textbf{MetaGPT: A Multi-Agent Framework}}\\[0.2cm]
+    {\LARGE \textbf{with RAG for Code Generation}}\\[2cm]
 
     {\Large \textbf{CSD416 PROJECT PHASE II}}\\[1cm]
     {\Large\itshape
@@ -53,10 +68,10 @@ Project Phase II Report submitted in partial fulfillment for the degree}\\[0.2cm
 
     \vfill
     
-    {\Large \textbf{Submitted by}}\\
-    {\Large \textbf{ADARSH A S (Reg No: MUT22CS005)}}\\
-    {\Large \textbf{ANUPAM KRISHNA T V (Reg No: MUT22CS032)}}\\
-    {\Large \textbf{ASLAH T P (Reg No: MUT22CS041)}}\\
+    {\Large \text{Submitted by}}\\[0.2cm]
+    {\Large \textbf{ADARSH A S (Reg No: MUT22CS005)}}\\[0.1cm]
+    {\Large \textbf{ANUPAM KRISHNA T V (Reg No: MUT22CS032)}}\\[0.1cm]
+    {\Large \textbf{ASLAH T P (Reg No: MUT22CS041)}}\\[0.1cm]
     {\Large \textbf{KARTHIKA NAIR (Reg No: MUT22CS081)}}\\[2cm]
 
     \includegraphics[width=0.6\textwidth]{images/mits logo.png}
@@ -90,12 +105,12 @@ We hereby declare that this submission is our own work and that, to the best of 
 
 \vspace{3cm}
 \noindent
-\textbf{NAME 1 (REG NO)}\\[0.8cm]
-\textbf{NAME 2 (REG NO)}\\[0.8cm]
-\textbf{NAME 3 (REG NO)}\\[0.8cm]
-\textbf{NAME 4 (REG NO)}
+ADARSH A S (Reg No: MUT22CS005)\\[0.1cm]
+ANUPAM KRISHNA T V (Reg No: MUT22CS032)\\[0.1cm]
+ASLAH T P (Reg No: MUT22CS041)\\[0.1cm]
+KARTHIKA NAIR (Reg No: MUT22CS081)
 
-\vspace{2.5cm}
+\vspace{4.5cm}
 \noindent
 \textbf{Place:}\\[0.8cm]
 \textbf{Date:}
@@ -114,17 +129,17 @@ We hereby declare that this submission is our own work and that, to the best of 
 
 \vspace{0.4cm}
 \noindent
-\textit{This is to certify that the Project Phase II report entitled } \textbf{“PROJECT TITLE”}, 
-\textit{submitted by} \textbf{team member's name (Reg No:)} 
+\textit{This is to certify that the Project Phase II report entitled } \textbf{``MetaGPT: A Multi-Agent Framework with RAG for Code Generation''}, 
+\textit{submitted by} \textbf{ADARSH A S, ANUPAM KRISHNA T V, ASLAH T P, and KARTHIKA NAIR} 
 \textit{of Semester VIII is a bonafide account of the work done by them under our supervision during the academic year 2025-26.}
 
 \vspace{2.5cm}
 \begin{center}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l l l}
-\textbf{Guide} & \textbf{Coordinator} & \textbf{Head of the Department} \\
-Guide name & Coordinator name & HOD name \\
-Designation & Designation & Designation \\
-Department & Department & Department \\
+\textbf{Guide:} & \textbf{Coordinator:} & \textbf{Head of the Department:} \\
+Dr. Abdul Ali & Dr. Sheena Kurian K & Dr. Anishin Raj M M \\
+\textit{Assistant Professor} & \textit{Assistant Professor} & \textit{Head of the Department} \\
+Dept. of CSE & Dept. of CSE & Dept. of CSE \\
 \end{tabular*}
 \end{center}
 
