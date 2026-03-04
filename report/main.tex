@@ -20,6 +20,38 @@
 \usepackage{ragged2e}
 \usepackage{microtype}
 \usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\lstdefinelanguage{JavaScript}{
+  keywords={typeof, new, true, false, catch, function, return, null, switch, var, if, in, while, do, else, case, break, const, let, async, await},
+  keywordstyle=\color{blue}\bfseries,
+  ndkeywords={class, export, boolean, throw, implements, import, this},
+  ndkeywordstyle=\color{darkgray}\bfseries,
+  identifierstyle=\color{black},
+  sensitive=false,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{black!60}\itshape,
+  stringstyle=\color{orange!80!black},
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  keywordstyle=\bfseries\color{blue},
+  commentstyle=\itshape\color{black!60},
+  stringstyle=\color{orange!80!black},
+  frame=single,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  captionpos=b,
+  xleftmargin=1.5em,
+  xrightmargin=0.5em
+}
 
 % Page number at bottom right
 \pagestyle{fancy}

@@ -5,12 +5,12 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {5.1}{\ignorespaces Unit Test Cases for MetaGPT Modules}}{37}{}%
-\contentsline {table}{\numberline {5.2}{\ignorespaces Integration Test Cases: API-level Tests}}{40}{}%
-\contentsline {table}{\numberline {5.3}{\ignorespaces Integration Test Cases: Pipeline Orchestration}}{41}{}%
-\contentsline {table}{\numberline {5.4}{\ignorespaces Integration Test Cases: Storage + API Integration}}{42}{}%
-\contentsline {table}{\numberline {5.5}{\ignorespaces Integration Test Cases: RAG Workflows}}{43}{}%
-\contentsline {table}{\numberline {5.6}{\ignorespaces Integration Test Cases: Backend to Frontend}}{43}{}%
-\contentsline {table}{\numberline {5.7}{\ignorespaces System Test Cases: Project as a Whole}}{45}{}%
+\contentsline {table}{\numberline {5.1}{\ignorespaces Unit Test Cases for MetaGPT Modules}}{42}{}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Integration Test Cases: API-level Tests}}{45}{}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Integration Test Cases: Pipeline Orchestration}}{46}{}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Integration Test Cases: Storage + API Integration}}{46}{}%
+\contentsline {table}{\numberline {5.5}{\ignorespaces Integration Test Cases: RAG Workflows}}{47}{}%
+\contentsline {table}{\numberline {5.6}{\ignorespaces Integration Test Cases: Backend to Frontend}}{48}{}%
+\contentsline {table}{\numberline {5.7}{\ignorespaces System Test Cases: Project as a Whole}}{49}{}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
