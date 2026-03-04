@@ -1,0 +1,25 @@
+\chapter{Introduction}
+
+\section{Overview}
+
+Recent advances in large language models (LLMs) have enabled the automatic generation of high-quality source code from natural language requirements. However, most existing tools operate as single-step assistants that produce code snippets without a systematic process for requirements analysis, architecture design, implementation, testing, and iteration. This often leads to code that is difficult to maintain, lacks structure, and does not align with production engineering practices.\\
+
+MetaGPT is a production-ready agentic code generation system designed to address these limitations. It uses a pipeline of specialized autonomous agents, each governed by a Standard Operating Procedure (SOP), to transform user prompts into complete, structured software projects. The system exposes a FastAPI-based backend for orchestration and a Next.js frontend for interactive project management, file exploration, and chat-based refinement. By combining SOP-driven agents with modern web technologies, MetaGPT aims to make LLM-assisted development more reliable, repeatable, and suitable for real-world use.\\
+
+\section{Background}
+
+Traditional software development workflows follow a sequence of phases such as requirement gathering, analysis, design, implementation, testing, and maintenance. In practice, these phases are iterative and collaborative, involving multiple roles like project managers, architects, developers, and quality assurance (QA) engineers. With the emergence of LLMs, there has been a shift towards automating parts of this workflow, particularly in code synthesis and documentation generation.\\
+
+Despite this progress, several challenges remain. One-shot code generation often lacks traceability from requirements to implementation. Generated projects may not follow consistent architectures, naming conventions, or testing strategies, and they rarely integrate into existing continuous integration or deployment pipelines. Furthermore, many tools depend on a single monolithic prompt, making it difficult to adapt or extend the system for new project types.\\
+
+MetaGPT is built to bridge this gap by explicitly modeling the roles and responsibilities of different agents in a software team. Each agent in the pipeline---Manager, Architect, Engineer, and QA---is implemented as a separate component that consumes and produces structured data. This design promotes modularity, extensibility, and transparency in how LLMs are used to build software projects.\\
+
+
+
+\section{Motivation}
+
+Developers and product teams increasingly seek tools that can accelerate the initial stages of software creation while preserving code quality and architectural integrity. Manually translating informal prompts into full-stack applications is time-consuming and prone to misinterpretation, especially when iterating on requirements. At the same time, organizations require systems that are transparent, auditable, and easy to integrate into existing engineering workflows.\\
+
+MetaGPT is motivated by the need for an end-to-end agentic platform that can reliably generate, organize, and refine codebases based on user prompts. By formalizing agent behavior through SOPs and exposing clear APIs for project creation, pipeline execution, and file management, the system aims to reduce manual effort while preserving control and oversight. The project also serves as a reference implementation for building LLM-powered developer tools that emphasize structure, observability, and extensibility over ad-hoc code generation.\\
+
+

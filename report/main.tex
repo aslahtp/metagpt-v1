@@ -1,0 +1,197 @@
+\documentclass[a4paper,12pt]{template} 
+
+% Packages
+\usepackage{graphicx}   
+\usepackage{setspace}   
+\usepackage{geometry}   
+\usepackage{tocloft}    
+\usepackage{titlesec}   
+\usepackage{ulem}       
+\usepackage{caption}    
+\usepackage{float}      
+\usepackage{longtable}
+\usepackage{url}
+\usepackage{amsmath}    
+\usepackage{pdfpages}   
+\usepackage{amssymb}
+\usepackage{chngcntr}
+\usepackage{tabularx}
+\usepackage{subcaption}
+\usepackage{ragged2e}
+\usepackage{microtype}
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=2.5cm,
+    right=2.5cm
+}
+
+\renewcommand{\contentsname}{Contents}
+\setcounter{tocdepth}{2}
+
+\begin{document}
+
+% ----------------------------------------------------------
+% TITLE PAGE (No Page Number)
+% ----------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\LARGE \textbf{PROJECT}}\\[0.2cm]
+    {\LARGE \textbf{Title}}\\[2cm]
+
+    {\Large \textbf{CSD416 PROJECT PHASE II}}\\[1cm]
+    {\Large\itshape
+Project Phase II Report submitted in partial fulfillment for the degree}\\[0.2cm]
+
+{\Large\itshape of}\\[0.2cm]
+
+{\Large\itshape B.Tech Computer Science and Engineering}\\[1cm]
+
+    \vfill
+    
+    {\Large \textbf{Submitted by}}\\
+    {\Large \textbf{ADARSH A S (Reg No: MUT22CS005)}}\\
+    {\Large \textbf{ANUPAM KRISHNA T V (Reg No: MUT22CS032)}}\\
+    {\Large \textbf{ASLAH T P (Reg No: MUT22CS041)}}\\
+    {\Large \textbf{KARTHIKA NAIR (Reg No: MUT22CS081)}}\\[2cm]
+
+    \includegraphics[width=0.6\textwidth]{images/mits logo.png}
+
+    \vspace{0.5cm}
+    \textbf{\textsc{DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING}}\\
+    \textit{(Affiliated to APJ Abdul Kalam Technological University)}\\
+    {\large \textbf{MARCH 2026}}
+\end{titlepage}
+
+% ==========================================================
+% FRONT MATTER (NO PAGE NUMBERS)
+% ==========================================================
+\pagenumbering{gobble}
+
+% ----------------------------------------------------------
+% DECLARATION
+% ----------------------------------------------------------
+\newpage
+\thispagestyle{empty}
+
+\begin{center}
+    \vspace*{2cm}
+    {\Large \textbf{DECLARATION}}
+\end{center}
+
+\vspace{1.5cm}
+\begin{justify}
+We hereby declare that this submission is our own work and that, to the best of our knowledge and belief, it contains no material previously written by another person nor material which has been accepted for the award of any other degree or diploma of the university or other institute of higher learning, except where due acknowledgement has been made in the text.
+\end{justify}
+
+\vspace{3cm}
+\noindent
+\textbf{NAME 1 (REG NO)}\\[0.8cm]
+\textbf{NAME 2 (REG NO)}\\[0.8cm]
+\textbf{NAME 3 (REG NO)}\\[0.8cm]
+\textbf{NAME 4 (REG NO)}
+
+\vspace{2.5cm}
+\noindent
+\textbf{Place:}\\[0.8cm]
+\textbf{Date:}
+
+% ----------------------------------------------------------
+% CERTIFICATE
+% ----------------------------------------------------------
+\newpage
+\thispagestyle{empty}
+
+\begin{center}
+    \includegraphics[width=10cm]{images/mits logo.png}\\[1.5cm]
+    {\Large \textbf{\mbox{DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING}}}\\[2cm]
+    {\LARGE \textbf{CERTIFICATE}}\\[1cm]
+\end{center}
+
+\vspace{0.4cm}
+\noindent
+\textit{This is to certify that the Project Phase II report entitled } \textbf{“PROJECT TITLE”}, 
+\textit{submitted by} \textbf{team member's name (Reg No:)} 
+\textit{of Semester VIII is a bonafide account of the work done by them under our supervision during the academic year 2025-26.}
+
+\vspace{2.5cm}
+\begin{center}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l l l}
+\textbf{Guide} & \textbf{Coordinator} & \textbf{Head of the Department} \\
+Guide name & Coordinator name & HOD name \\
+Designation & Designation & Designation \\
+Department & Department & Department \\
+\end{tabular*}
+\end{center}
+
+% ----------------------------------------------------------
+% ACKNOWLEDGEMENT
+% ----------------------------------------------------------
+\newpage
+\thispagestyle{empty}
+
+\chapter*{Acknowledgements}
+\begin{justify}
+This project report is the result of our hard work wherein we have been helped and supported by several persons and institutions directly and indirectly. Now it is the time to acknowledge their valuable contributions.\\[0.5cm]
+We would like to extend our sincere gratitude to the \textbf{Management of Muthoot Institute of Technology and Science}  for providing us with the necessary facilities, resources, and a conducive environment to carry out our project successfully. We are deeply thankful to  \textbf {Dr. Neelakantan P. C.}, Principal, Muthoot Institute of Technology and Science, for his constant support, guidance, and encouragement throughout our academic journey. Our sincere gratitude to \textbf{Dr.Anishin Raj M M}, Head of the Department during our course period, for his guidance and support. His encouragement and leadership have greatly helped us in successfully completing our project.\\[0.5cm]
+We would like to express our heartfelt gratitude to our project guide, \textbf{Guide name} , for his/her continuous encouragement, invaluable guidance, motivation, and enthusiasm throughout our project.. We would also like to thank the project coordinators \textbf{Asst.Prof. Dr.Sheena Kurian K} and \textbf{Asst.Prof. Mithu Mary George}, for critically assessing our work and providing valuable suggestions.\\[0.5cm]
+In our daily work, we have been blessed with a friendly and cheerful group of fellow students. We are very thankful to all the members of S8 CSE.\\[0.5cm]
+Besides this, several people have knowingly and unknowingly helped us in the successful completion of this project. We express our sincere gratitude to all of them.    
+\end{justify}
+
+
+% ==========================================================
+% ROMAN NUMBERING STARTS HERE
+% ==========================================================
+\clearpage
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+% Abstract
+\newpage
+\input{chapter/abstract}
+
+% Table of Contents
+\newpage
+\tableofcontents
+
+% List of Figures
+\newpage
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+
+% List of Tables
+\newpage
+\addcontentsline{toc}{chapter}{List of Tables}
+\listoftables
+
+% List of Abbreviations
+\newpage
+\input{chapter/abbreviation}
+
+% ==========================================================
+% MAIN MATTER (ARABIC NUMBERING)
+% ==========================================================
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{chapter/ch1_introduction}
+\input{chapter/ch2_literature survey}
+\input{chapter/ch3_problem identification and objectives}
+\input{chapter/ch4_methodology}
+\input{chapter/ch5_implementation and results}
+\input{chapter/ch6_conclusion}
+\input{chapter/ch7_future scope}
+
+% References
+\input{chapter/references}
+
+% Appendix
+\input{chapter/appendix}
+
+\end{document}
