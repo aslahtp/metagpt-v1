@@ -22,7 +22,7 @@ The primary objective of this project is to develop \textbf{MetaGPT}, a producti
 
 The scope of MetaGPT primarily targets full-stack web application generation, where the system can detect and scaffold common frameworks such as React and Next.js on the frontend and FastAPI-based services on the backend. The architecture, however, is intentionally generic and can be extended to support other project templates, languages, and deployment targets by updating the agent SOPs and project templates.
 
-In the current implementation (\texttt{metagpt-v1}), the scope includes operational features required for practical usage: persistent storage of project state in MongoDB and optional live preview of generated projects through an isolated sandbox environment. These capabilities support longer workflows, interactive debugging, and reliable project access across application restarts.
+In the current implementation, the scope includes operational features required for practical usage: persistent storage of project state in MongoDB and optional live preview of generated projects through an isolated sandbox environment. These capabilities support longer workflows, interactive debugging, and reliable project access across application restarts.
 
 The system can be applied in several scenarios:
 \begin{itemize}
@@ -56,28 +56,28 @@ The project was executed using a phased, iterative plan that covered analysis, d
 
 \subsection*{Phase II -- Backend and Agent Pipeline Design (Week 3--4)}
 \begin{itemize}
-    \item Designed the project structure under \texttt{backend/app} including \texttt{api}, \texttt{agents}, \texttt{graph}, \texttt{services}, \texttt{storage}, \texttt{schemas}, and \texttt{rag}.
+    \item Designed the project structure under \texttt{backend/\allowbreak{}app} including \texttt{api}, \texttt{agents}, \texttt{graph}, \texttt{services}, \texttt{storage}, \texttt{schemas}, and \texttt{rag}.
     \item Specified the responsibilities and data contracts for the Manager, Architect, Engineer, and QA agents.
-    \item Defined the LangGraph pipeline state in \texttt{graph/state.py} and documented the transitions in \texttt{graph/orchestrator.py}.
-    \item Designed REST API endpoints for projects, pipeline execution, files, chat, and RAG operations in the \texttt{api/endpoints} package.
+    \item Defined the LangGraph pipeline state in \texttt{graph/\allowbreak{}\allowbreak{}state.py} and documented the transitions in \texttt{graph/\allowbreak{}\allowbreak{}orchestrator.py}.
+    \item Designed REST API endpoints for projects, pipeline execution, files, chat, and RAG operations in the \texttt{api/\allowbreak{}\allowbreak{}endpoints} package.
     \item Finalized environment configuration parameters in \texttt{config.py} and designed .env templates.
 \end{itemize}
 
 \subsection*{Phase III -- Backend Implementation (Week 5--7)}
 \begin{itemize}
-    \item Implemented the FastAPI application entry point in \texttt{main.py} and wired the routers defined in \texttt{api/router.py}.
-    \item Implemented agent classes in \texttt{agents/manager.py}, \texttt{agents/architect.py}, \texttt{agents/engineer.py}, and \texttt{agents/qa.py}, following SOPs from \texttt{sop/definitions.py}.
-    \item Developed pipeline and chat services in \texttt{services/pipeline\_service.py} and \texttt{services/chat\_service.py}.
-    \item Implemented storage backends for projects and files in \texttt{storage/project\_store.py} and \texttt{storage/file\_store.py}.
-    \item Integrated Google Gemini configuration via LangChain in \texttt{llm/gemini.py}, including helper functions for structured output.
+    \item Implemented the FastAPI application entry point in \texttt{main.py} and wired the routers defined in \texttt{api/\allowbreak{}\allowbreak{}router.py}.
+    \item Implemented agent classes in \texttt{agents/\allowbreak{}\allowbreak{}manager.py}, \texttt{agents/\allowbreak{}\allowbreak{}architect.py}, \texttt{agents/\allowbreak{}\allowbreak{}engineer.py}, and \texttt{agents/\allowbreak{}\allowbreak{}qa.py}, following SOPs from \texttt{sop/\allowbreak{}\allowbreak{}definitions.py}.
+    \item Developed pipeline and chat services in \texttt{services/\allowbreak{}\allowbreak{}pipeline\_\allowbreak{}service.py} and \texttt{services/\allowbreak{}\allowbreak{}chat\_\allowbreak{}service.py}.
+    \item Implemented storage backends for projects and files in \texttt{storage/\allowbreak{}\allowbreak{}project\_\allowbreak{}store.py} and \texttt{storage/\allowbreak{}\allowbreak{}file\_\allowbreak{}store.py}.
+    \item Integrated Google Gemini configuration via LangChain in \texttt{llm/\allowbreak{}\allowbreak{}gemini.py}, including helper functions for structured output.
 \end{itemize}
 
 \subsection*{Phase IV -- Frontend Implementation (Week 8--10)}
 \begin{itemize}
-    \item Created the Next.js App Router structure under \texttt{frontend/src/app}, including landing, projects list, project workspace, and authentication pages.
+    \item Created the Next.js App Router structure under \texttt{frontend/\allowbreak{}\allowbreak{}src/\allowbreak{}app}, including landing, projects list, project workspace, and authentication pages.
     \item Implemented core UI components such as \texttt{AgentOutputs}, \texttt{ChatPanel}, \texttt{CodeViewer}, \texttt{ExecutionTimeline}, and \texttt{FileExplorer}.
     \item Set up global styling and theming with Tailwind CSS and dark theme defaults.
-    \item Implemented API client utilities in \texttt{frontend/src/lib/api.ts} and application state management using stores in \texttt{frontend/src/lib/store.ts}.
+    \item Implemented API client utilities in \texttt{frontend/\allowbreak{}\allowbreak{}src/\allowbreak{}lib/\allowbreak{}api.ts} and application state management using stores in \texttt{frontend/\allowbreak{}\allowbreak{}src/\allowbreak{}lib/\allowbreak{}store.ts}.
     \item Connected frontend interactions (project creation, pipeline run, file viewing, chat) to backend endpoints.
 \end{itemize}
 
@@ -97,11 +97,3 @@ The project was executed using a phased, iterative plan that covered analysis, d
     \item Verified that the project can be cloned, configured, and run from a clean environment using the documented instructions.
     \item Identified future enhancements and roadmap items for subsequent iterations.
 \end{itemize}
-
-\section{SRS Document}
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
-Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.

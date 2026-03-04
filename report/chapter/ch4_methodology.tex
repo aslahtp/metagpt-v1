@@ -17,11 +17,11 @@ The architecture diagram in Figure~\ref{fig:architecture} illustrates the follow
 \begin{itemize}
     \item \textbf{Frontend Layer:} React-based user interface providing agent management, workflow visualization, and real-time collaboration monitoring.
     \item \textbf{API Gateway:} FastAPI backend serving as the central orchestration point for all agent interactions and workflow management.
-    \item \textbf{Agent Framework:} LangGraph and LangChain integration providing sophisticated agent orchestration and communication protocols.
-    \item \textbf{Specialized Agents:} Product Manager, Architect, Engineer, and QA Engineer agents with distinct roles and responsibilities.
+    \item \textbf{Agent Framework:} LangGraph-based state graph providing deterministic agent orchestration, with LangChain used as the LLM abstraction layer for calling Google Gemini.
+    \item \textbf{Specialized Agents:} Manager, Architect, Engineer, and QA agents with distinct roles and responsibilities.
     \item \textbf{RAG System:} Vector database integration with semantic search capabilities for context-aware code generation and knowledge retrieval.
     \item \textbf{AI Integration:} Gemini API integration providing state-of-the-art language model capabilities for agent reasoning and code generation.
-    \item \textbf{Communication Layer:} Structured message passing and publish-subscribe mechanisms enabling efficient agent collaboration.
+    \item \textbf{Communication Layer:} Shared-state passing via a pipeline service, where each agent reads typed outputs from the previous agent and writes its own output into the same state object.
 \end{itemize}
 
 
@@ -40,26 +40,26 @@ The Use Case diagram illustrates the interactions between the primary actors (Us
 \section{Detailed Design}
 \subsection{Module 1: Backend API Layer}
 
-The first major module is the \textbf{Backend API Layer}, implemented using FastAPI under the \texttt{backend/app} package. Its primary responsibility is to expose a stable HTTP interface for all core operations, including project management, pipeline execution, file access, chat-based iteration, and retrieval-augmented generation.
+The first major module is the \textbf{Backend API Layer}, implemented using FastAPI under the \texttt{backend/\allowbreak{}app} package. Its primary responsibility is to expose a stable HTTP interface for all core operations, including project management, pipeline execution, file access, chat-based iteration, and retrieval-augmented generation.
 
-The entry point \texttt{main.py} constructs the FastAPI application, configures middleware, and includes the top-level router defined in \texttt{api/router.py}. The router aggregates versioned endpoints under the \texttt{/api/v1} prefix, delegating to individual endpoint modules such as:
+The entry point \texttt{main.py} constructs the FastAPI application, configures middleware, and includes the top-level router defined in \texttt{api/\allowbreak{}router.py}. The router aggregates versioned endpoints under the \texttt{/\allowbreak{}api/\allowbreak{}v1} prefix, delegating to individual endpoint modules such as:
 \begin{itemize}
-    \item \texttt{api/endpoints/projects.py} for creating, listing, and retrieving projects.
-    \item \texttt{api/endpoints/pipeline.py} for running the agentic pipeline in batch or streaming mode.
-    \item \texttt{api/endpoints/files.py} for browsing the project file tree and fetching or updating file contents.
-    \item \texttt{api/endpoints/chat.py} for handling iterative chat interactions tied to a project.
-    \item \texttt{api/endpoints/rag.py} and \texttt{api/endpoints/sandbox.py} for RAG and sandbox-related operations.
+    \item \texttt{api/\allowbreak{}endpoints/\allowbreak{}projects.py} for creating, listing, and retrieving projects.
+    \item \texttt{api/\allowbreak{}endpoints/\allowbreak{}pipeline.py} for running the agentic pipeline in batch or streaming mode.
+    \item \texttt{api/\allowbreak{}endpoints/\allowbreak{}files.py} for browsing the project file tree and fetching or updating file contents.
+    \item \texttt{api/\allowbreak{}endpoints/\allowbreak{}chat.py} for handling iterative chat interactions tied to a project.
+    \item \texttt{api/\allowbreak{}endpoints/\allowbreak{}rag.py} and \texttt{api/\allowbreak{}endpoints/\allowbreak{}sandbox.py} for RAG and sandbox-related operations.
 \end{itemize}
 
 Each endpoint module validates incoming requests using Pydantic schemas from the \texttt{schemas} package, calls into dedicated service functions, and returns structured responses. Authentication and authorization concerns are centralized in \texttt{auth.py} and integrated into endpoint dependencies where required.
 
-In addition to the core project/pipeline/files/chat endpoints, MetaGPT implements sandbox management endpoints in \texttt{api/endpoints/sandbox.py} to support live previews of generated projects. The sandbox workflow is intentionally non-blocking: the \texttt{/{project\_id}/create} endpoint returns \textbf{202 Accepted} immediately and triggers sandbox creation as a background task, while clients poll \texttt{/{project\_id}/status} until the sandbox becomes \texttt{ready} and a \texttt{preview\_url} is available. This design prevents request timeouts during dependency installation and dev-server startup.
+In addition to the core project/pipeline/files/chat endpoints, MetaGPT implements sandbox management endpoints in \texttt{api/\allowbreak{}endpoints/\allowbreak{}sandbox.py} to support live previews of generated projects. The sandbox workflow is intentionally non-blocking: the \texttt{/\allowbreak{}{project\_\allowbreak{}id}/create} endpoint returns \textbf{202 Accepted} immediately and triggers sandbox creation as a background task, while clients poll \texttt{/\allowbreak{}{project\_\allowbreak{}id}/status} until the sandbox becomes \texttt{ready} and a \texttt{preview\_\allowbreak{}url} is available. This design prevents request timeouts during dependency installation and dev-server startup.
 
 \subsection{Module 2: Agent Orchestration and Graph}
 
-The second module is the \textbf{Agent Orchestration and Graph Module}, which coordinates the sequence of Manager, Architect, Engineer, and QA agents using LangGraph and LangChain. The overall pipeline state is defined in \texttt{graph/state.py}, where a central data structure captures the prompt, intermediate artifacts, agent outputs, and final project representation.
+The second module is the \textbf{Agent Orchestration and Graph Module}, which coordinates the sequence of Manager, Architect, Engineer, and QA agents using LangGraph. The overall pipeline state is defined in \texttt{graph/\allowbreak{}state.py}, where a central data structure captures the prompt, intermediate artifacts, agent outputs, and final project representation.
 
-The orchestration logic in \texttt{graph/orchestrator.py} builds a directed graph whose nodes correspond to individual agents and whose edges represent valid transitions. For example, the Manager node takes a raw user prompt and produces a structured requirement specification, which becomes input to the Architect node. The Architect node generates a high-level system design and file plan, which is passed to the Engineer node to create concrete source files. Finally, the QA node inspects the generated artifacts, produces test cases, and records quality-related feedback.
+The orchestration logic in \texttt{graph/\allowbreak{}orchestrator.py} builds a directed graph whose nodes correspond to individual agents and whose edges represent valid transitions. For example, the Manager node takes a raw user prompt and produces a structured requirement specification, which becomes input to the Architect node. The Architect node generates a high-level system design and file plan, which is passed to the Engineer node to create concrete source files. Finally, the QA node inspects the generated artifacts, produces test cases, and records quality-related feedback.
 
 The orchestrator integrates with LangChain’s LLM abstractions to call Google Gemini via helper functions defined in the \texttt{llm} module. It also records intermediate outputs so that the frontend can display an execution timeline and visualizations of agent reasoning. Error handling, retries, and logging are centralized here, making the pipeline robust and easier to debug or extend with additional agents in the future.
 
@@ -67,10 +67,10 @@ The orchestrator integrates with LangChain’s LLM abstractions to call Google G
 
 The third module is the \textbf{Storage and Project Management Module}, which persists all artifacts produced by the pipeline and exposes higher-level operations for managing projects. This module is implemented primarily in the \texttt{storage} and \texttt{models} packages.
 
-Domain models such as \texttt{models/project.py} and \texttt{models/user.py} describe core entities, while storage backends in \texttt{storage/project\_store.py} and \texttt{storage/file\_store.py} handle reading and writing data to the filesystem. The project store is responsible for:
+Domain models such as \texttt{models/\allowbreak{}project.py} and \texttt{models/\allowbreak{}user.py} describe core entities, while storage backends in \texttt{storage/\allowbreak{}project\_\allowbreak{}store.py} and \texttt{storage/\allowbreak{}file\_\allowbreak{}store.py} handle reading and writing data. Project state is persisted in \textbf{MongoDB} using the Beanie ODM (with Motor as the async driver), as implemented in \texttt{db.py}, \texttt{models/\allowbreak{}project.py}, and \texttt{storage/\allowbreak{}project\_\allowbreak{}store.py}. The project store is responsible for:
 \begin{itemize}
-    \item Creating a new project directory structure in a configurable \texttt{PROJECTS\_DIR}.
-    \item Recording metadata such as project identifiers, associated prompts, and timestamps.
+    \item Creating a new project directory structure in a configurable \texttt{PROJECTS\_\allowbreak{}DIR} for generated code files.
+    \item Recording metadata such as project identifiers, associated prompts, and timestamps in MongoDB.
     \item Listing existing projects and resolving paths for files within a given project.
 \end{itemize}
 
@@ -81,21 +81,21 @@ The file store provides operations to:
     \item Apply updates to files when users edit code through the interface.
 \end{itemize}
 
-Together, these components decouple persistent storage concerns from the agent pipeline and API layer. In \texttt{metagpt-v1}, project state is persisted in \textbf{MongoDB} using the Beanie ODM (with Motor as the async driver), as implemented in \texttt{db.py}, \texttt{models/project.py}, and \texttt{storage/project\_store.py}. This persistence layer stores project metadata, pipeline status, and agent outputs (including generated files), enabling recovery after server restarts and supporting long-running workflows. When ephemeral disk cache is missing, the pipeline service can restore project files from MongoDB back to disk so that file browsing and preview remain functional.
+Together, these components decouple persistent storage concerns from the agent pipeline and API layer. This persistence layer stores project metadata, pipeline status, and agent outputs (including generated files), enabling recovery after server restarts and supporting long-running workflows. When ephemeral disk cache is missing, the pipeline service can restore project files from MongoDB back to disk so that file browsing and preview remain functional.
 
 \subsection{Module 4: Frontend User Interface}
 
-The fourth module is the \textbf{Frontend User Interface}, implemented with Next.js, TypeScript, and Tailwind CSS under the \texttt{frontend/src} directory. It provides an interactive, dark-themed workspace where users can manage projects and visualize the behavior of the agent pipeline.
+The fourth module is the \textbf{Frontend User Interface}, implemented with Next.js, TypeScript, and Tailwind CSS under the \texttt{frontend/\allowbreak{}src} directory. It provides an interactive, dark-themed workspace where users can manage projects and visualize the behavior of the agent pipeline.
 
-The App Router structure in \texttt{src/app} defines key pages:
+The App Router structure in \texttt{src/\allowbreak{}app} defines key pages:
 \begin{itemize}
     \item \texttt{page.tsx} as the landing page for entering prompts and viewing recent projects.
-    \item \texttt{projects/page.tsx} for listing all projects retrieved from the backend.
-    \item \texttt{project/[id]/page.tsx} as the main workspace for a specific project, showing files, agent outputs, and chat.
-    \item \texttt{signin/page.tsx} and \texttt{signup/page.tsx} for authentication flows (if enabled).
+    \item \texttt{projects/\allowbreak{}page.tsx} for listing all projects retrieved from the backend.
+    \item \texttt{project/\allowbreak{}[id]/\allowbreak{}page.tsx} as the main workspace for a specific project, showing files, agent outputs, and chat.
+    \item \texttt{signin/\allowbreak{}page.tsx} and \texttt{signup/\allowbreak{}page.tsx} for authentication flows (if enabled).
 \end{itemize}
 
-Reusable components in \texttt{src/components} encapsulate major UI features:
+Reusable components in \texttt{src/\allowbreak{}components} encapsulate major UI features:
 \begin{itemize}
     \item \texttt{FileExplorer.tsx} renders the project tree and allows users to select files.
     \item \texttt{CodeViewer.tsx} displays syntax-highlighted source code and possibly supports editing.
@@ -104,17 +104,17 @@ Reusable components in \texttt{src/components} encapsulate major UI features:
     \item \texttt{ChatPanel.tsx} enables iterative conversations tied to a particular project.
 \end{itemize}
 
-Client-side state is managed using stores defined in \texttt{src/lib/store.ts} and related files, while API communication is abstracted in \texttt{src/lib/api.ts}. Global styles and Tailwind configuration ensure a consistent look-and-feel across the application.
+Client-side state is managed using stores defined in \texttt{src/\allowbreak{}lib/\allowbreak{}store.ts} and related files, while API communication is abstracted in \texttt{src/\allowbreak{}lib/\allowbreak{}api.ts}. Global styles and Tailwind configuration ensure a consistent look-and-feel across the application.
 
 \subsection{Module 5: LLM, SOP, and Retrieval}
 
 The fifth module is the \textbf{LLM, SOP, and Retrieval Module}, which encapsulates all logic related to configuring the underlying LLM, defining agent SOPs, and supporting retrieval-augmented generation (RAG). This module ties together the conceptual behavior of agents with concrete model calls and knowledge sources.
 
-The \texttt{llm/gemini.py} file provides helper functions such as \texttt{get\_llm} and \texttt{get\_llm\_with\_structured\_output}, which create LangChain-compatible LLM instances backed by Google Gemini. Configuration values such as model name, temperature, maximum tokens, and API key are read from \texttt{config.py} and environment variables, ensuring that model behavior can be tuned without changing application code.
+The \texttt{llm/\allowbreak{}gemini.py} file provides helper functions such as \texttt{get\_\allowbreak{}llm} and \texttt{get\_\allowbreak{}llm\_\allowbreak{}with\_\allowbreak{}structured\_\allowbreak{}output}, which create LangChain-compatible LLM instances backed by Google Gemini. Configuration values such as model name, temperature, maximum tokens, and API key are read from \texttt{config.py} and environment variables, ensuring that model behavior can be tuned without changing application code.
 
-Agent behaviors are specified in \texttt{sop/definitions.py}, where each agent’s role, objectives, inputs, outputs, constraints, and quality checklist are documented. These SOPs are consumed by the agent implementations in the \texttt{agents} package, providing a clear contract between high-level design and concrete prompts issued to the LLM.
+Agent behaviors are specified in \texttt{sop/\allowbreak{}definitions.py}, where each agent’s role, objectives, inputs, outputs, constraints, and quality checklist are documented. These SOPs are consumed by the agent implementations in the \texttt{agents} package, providing a clear contract between high-level design and concrete prompts issued to the LLM.
 
-The RAG submodule in \texttt{rag} contains utilities for indexing and retrieving relevant documents. Files such as \texttt{rag/indexer.py}, \texttt{rag/vector\_store.py}, \texttt{rag/retriever.py}, and \texttt{rag/embeddings.py} manage the creation of vector embeddings, storage of vectors, and retrieval of context for augmenting LLM prompts. This enables MetaGPT to ground agent reasoning in existing project artifacts or external knowledge bases, improving accuracy and consistency for complex tasks.
+The RAG submodule in \texttt{rag} contains utilities for indexing and retrieving relevant documents. Files such as \texttt{rag/\allowbreak{}indexer.py}, \texttt{rag/\allowbreak{}vector\_\allowbreak{}store.py}, \texttt{rag/\allowbreak{}retriever.py}, and \texttt{rag/\allowbreak{}embeddings.py} manage the creation of vector embeddings, storage of vectors, and retrieval of context for augmenting LLM prompts. This enables MetaGPT to ground agent reasoning in existing project artifacts or external knowledge bases, improving accuracy and consistency for complex tasks.
 
 \section{Data Flow Diagram}
 
@@ -161,47 +161,119 @@ Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deseru
 
 \section{UI Design}
 
-The User Interface (UI) is designed to be clean, modern, and intuitive, prioritizing the agent management and workflow visualization experience.
+The User Interface (UI) is designed to be clean, modern, and intuitive, prioritizing the agent management and workflow visualization experience. The following screenshots illustrate the key screens of the application.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{images/ui1.png}
-    \caption{MetaGPT UI — Screen 1}
-    \label{fig:ui_1}
+    \includegraphics[width=1\textwidth]{images/home_page.png}
+    \caption{MetaGPT — Home Page}
+    \label{fig:ui_home}
 \end{figure}
 
 \vspace{1em}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{images/ui2.png}
-    \caption{MetaGPT UI — Screen 2}
-    \label{fig:ui_2}
+    \includegraphics[width=1\textwidth]{images/home_page_with_prompt.png}
+    \caption{MetaGPT — Home Page with Prompt Entered}
+    \label{fig:ui_home_prompt}
 \end{figure}
 
 \vspace{1em}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{images/ui3.png}
-    \caption{MetaGPT UI — Screen 3}
-    \label{fig:ui_3}
+    \includegraphics[width=1\textwidth]{images/signin_page.png}
+    \caption{MetaGPT — Sign In Page}
+    \label{fig:ui_signin}
 \end{figure}
 
 \vspace{1em}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{images/ui4.png}
-    \caption{MetaGPT UI — Screen 4}
-    \label{fig:ui_4}
+    \includegraphics[width=1\textwidth]{images/signup_page.png}
+    \caption{MetaGPT — Sign Up Page}
+    \label{fig:ui_signup}
 \end{figure}
 
 \vspace{1em}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{images/ui5.png}
-    \caption{MetaGPT UI — Screen 5}
-    \label{fig:ui_5}
+    \includegraphics[width=1\textwidth]{images/list_of_projects.png}
+    \caption{MetaGPT — List of Projects}
+    \label{fig:ui_projects}
 \end{figure}
+
+\vspace{1em}
+
+\begin{figure}[H]
+    \vspace*{-\intextsep}
+    \centering
+    \captionsetup{aboveskip=0pt,belowskip=2pt}
+    \caption{MetaGPT — Manager Agent Output}
+    \includegraphics[height=\textheight,keepaspectratio]{images/manager_output.png}
+    \label{fig:ui_manager}
+\end{figure}
+
+\vspace{1em}
+
+\begin{figure}[H]
+    \vspace*{-\intextsep}
+    \centering
+    \captionsetup{aboveskip=0pt,belowskip=2pt}
+    \caption{MetaGPT — Architect Agent Output}
+    \includegraphics[height=\textheight,keepaspectratio]{images/architect_output.png}
+    \label{fig:ui_architect}
+\end{figure}
+
+\vspace{1em}
+
+\begin{figure}[H]
+    \vspace*{-\intextsep}
+    \centering
+    \captionsetup{aboveskip=0pt,belowskip=2pt}
+    \caption{MetaGPT — Engineer Agent Output}
+    \includegraphics[height=\textheight,keepaspectratio]{images/engineer_output.png}
+    \label{fig:ui_engineer}
+\end{figure}
+
+\vspace{1em}
+
+\begin{figure}[H]
+    \vspace*{-\intextsep}
+    \centering
+    \captionsetup{aboveskip=0pt,belowskip=2pt}
+    \caption{MetaGPT — QA Agent Output}
+    \includegraphics[height=\textheight,keepaspectratio]{images/qa_output_1.png}
+    \label{fig:ui_qa}
+\end{figure}
+
+\begin{figure}[H]
+    \vspace*{-\intextsep}
+    \centering
+    \captionsetup{aboveskip=0pt,belowskip=2pt}
+    \caption{MetaGPT — QA Agent Output (continued)}
+    \includegraphics[height=\textheight,keepaspectratio]{images/qa_output_2.png}
+    \label{fig:ui_qa_2}
+\end{figure}
+
+\vspace{1em}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{images/code_preview.png}
+    \caption{MetaGPT — Code Preview}
+    \label{fig:ui_code}
+\end{figure}
+
+\vspace{1em}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{images/sandbox_live_preview.png}
+    \caption{MetaGPT — Sandbox Live Preview}
+    \label{fig:ui_sandbox}
+\end{figure}
+

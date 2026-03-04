@@ -46,7 +46,7 @@ The literature on multi-agent systems and automated code generation provides a r
     \item Performance and reliability depend on the quality of agent prompts, structured outputs, and the availability of mechanisms to recover from failures.
 \end{itemize}
 
-\textbf{Relevance to our project (\texttt{metagpt-v1}):} The \texttt{metagpt-v1} implementation adopts this central idea by implementing a role-based pipeline (Manager, Architect, Engineer, QA) with explicit SOP definitions, graph-based orchestration, persistent storage of project state, and support services (e.g., sandboxed previews) to operationalize the research concepts into an end-to-end system.
+\textbf{Relevance to our project:} The proposed framework adopts this central idea by implementing a role-based pipeline (Manager, Architect, Engineer, QA) with explicit SOP definitions, graph-based orchestration, persistent storage of project state, and support services (e.g., sandboxed previews) to operationalize the research concepts into an end-to-end system.
 
 \subsection{Evaluating Large Language Models Trained on Code (Codex, OpenAI 2021)}
 \textbf{Authors:} Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan
@@ -165,7 +165,7 @@ The literature on multi-agent systems and automated code generation provides a r
 
 \section{Literature Matrix}
 
-Table \ref{tab:literature_matrix} provides a comprehensive comparison of the four key papers reviewed, highlighting their methodologies, strengths, weaknesses, and relevance to our MetaGPT framework.
+Table \ref{tab:literature_matrix} provides a comprehensive comparison of the key papers reviewed, highlighting their methodologies, strengths, weaknesses, and relevance to our MetaGPT framework.
 
 \begin{table}[H]
 \centering
@@ -185,6 +185,10 @@ Table \ref{tab:literature_matrix} provides a comprehensive comparison of the fou
 \hline
 4 & Exploration of LLM Multi-Agent Application Implementation Based on LangGraph+Crew AI & Zhihua Duan and Jialin Wang (2024) & Use of LangGraph and CrewAI in multi agent system for code generation & Demonstrates framework capabilities through application cases in code generation, code review, ticket auditing and forwarding & Optimizes task execution and enhances system flexibility and scalability through real-time status data sharing and feedback mechanisms & The paper does not explicitly state any disadvantages of using the LangGraph and CrewAI frameworks together \\
 \hline
+5 & Enhancing Function-Calling Capabilities in LLMs: Strategies for Prompt Formats, Data Integration, and Multilingual Translation & Yi-Chang Chen et al. (2024) & Tuning-based approach to improve function-calling in Large Language Models & 110k instruction-following instances from Open ORCA (IF-110k) and 110k function-calling instances (FC-110k) from APIGen & Instruction-following data significantly improves function-calling accuracy and relevance detection & The Decision Token approach resulted in a slight decrease in function-calling accuracy \\
+\hline
+6 & Large Language Model based Multi-Agents: A Survey of Progress and Challenges & Taicheng Guo et al. (2024) & Summarizes commonly used datasets, benchmarks, and open-source frameworks & N/A & Highlights the advantages of LLM-based multi-agent systems over single-agent systems & Identifies the escalating complexity of managing a large number of agents as a critical problem \\
+\hline
 \end{tabular}%
 }
 \end{table}
@@ -199,13 +203,19 @@ Table \ref{tab:literature_matrix} provides a comprehensive comparison of the fou
 \hline
 \multicolumn{1}{|c|}{\textbf{Sl.No}} & \multicolumn{1}{c|}{\textbf{TITLE}} & \multicolumn{1}{c|}{\textbf{AUTHOR(S)}} & \multicolumn{1}{c|}{\textbf{METHODOLOGY}} & \multicolumn{1}{c|}{\textbf{DATASET/CONTEXT}} & \multicolumn{1}{c|}{\textbf{ADVANTAGES}} & \multicolumn{1}{c|}{\textbf{DISADVANTAGES}} \\
 \hline
-5 & Enhancing Function-Calling Capabilities in LLMs: Strategies for Prompt Formats, Data Integration, and Multilingual Translation & Yi-Chang Chen et al. (2024) & Tuning-based approach to improve function-calling in Large Language Models & 110k instruction-following instances from Open ORCA (IF-110k) and 110k function-calling instances (FC-110k) from APIGen & Instruction-following data significantly improves function-calling accuracy and relevance detection & The Decision Token approach resulted in a slight decrease in function-calling accuracy \\
-\hline
-6 & Large Language Model based Multi-Agents: A Survey of Progress and Challenges & Taicheng Guo et al. (2024) & Summarizes commonly used datasets, benchmarks, and open-source frameworks & N/A & Highlights the advantages of LLM-based multi-agent systems over single-agent systems & Identifies the escalating complexity of managing a large number of agents as a critical problem \\
-\hline
 7 & Agent AI with LangGraph: A Modular Framework for Enhancing Machine Translation Using Large Language Models & Jialin Wang and Zhihua Duan (2024) & Intent Agent to analyze input text and route to appropriate translation agent using LLMs & Uses English and French sentence pairs to train and test the model. A total of 75,000 words were selected for the experiment & High degree of flexibility, scalability, and accuracy in multilingual translation tasks & The model structure was relatively simple and the number of data sets was insufficient \\
 \hline
 8 & Retrieval Augmented Code Generation and Summarization & Md Rizwan Parvez et al. (2021) & Proposes two-step, retrieval-augmented framework called REDCODER with retriever and generator modules & CodeXGLUE and Concode benchmarks, framework was evaluated on code generation and summarization tasks in Java and Python & Enhances code generation and summarization by augmenting input with retrieved information & Computational expense of cross-encoder code retrievers and inability of sparse token-level retrievers (like BM25) to find semantically similar code and summaries \\
+\hline
+9 & Evaluating Large Language Models Trained on Code (Codex) & Mark Chen, Jerry Tworek et al. (2021) & Fine-tuned GPT-3 on a massive GitHub code corpus; benchmarked on HumanEval programming problems & HumanEval (164 hand-written programming problems) & Demonstrated the potential of LLMs for code generation; effective for autocomplete, boilerplate, and simple scripts & Struggles with multi-file and system-level projects; prone to hallucination and insecure code generation \\
+\hline
+10 & Competition-Level Code Generation with AlphaCode & Yujia Li, David Choi et al. (2022) & Trained transformer-based models on competitive programming datasets; generated large pool of candidates via sampling, then filtered using clustering and unit tests & CodeContests competitive programming dataset & Strong performance on algorithmic challenges; effective verification via unit tests; robust solution space exploration & Extremely compute-intensive; focused on isolated problems, not full software projects; no structured planning or collaboration \\
+\hline
+11 & Auto-GPT for Online Decision Making & Hui Yang, Sifu Yue, Yunzhong He (2023) & Chains LLM prompts in a plan-execute-evaluate loop with tool use (web browsing, file editing) & Online decision-making tasks including web search and file operations & Handles long-horizon tasks; flexible tool use; pioneered the autonomous LLM agent trend & Brittle and prone to getting stuck in loops; no structured SOPs; weak verification produces errors without correction \\
+\hline
+12 & MapCoder: Multi-Agent Code Generation for Competitive Problem Solving & Md. Ashraful Islam et al. (2024) & Multi-agent pipeline: Planner decomposes problem, Solver agents generate code, Verifier runs tests and feeds back iteratively & Competitive programming datasets: Codeforces, AtCoder, HumanEval, MBPP, APPS & Efficient multi-agent coordination; verification embedded in workflow; parallel execution allows scalability & Focused on competitive programming, not full software projects; limited grounding in external documentation \\
+\hline
+13 & MetaGPT: Meta Programming for Multi-Agent Collaborative Framework & H. Hong, Y. Du, J. Pan, Z. Wu, and W. Chen (2023) & Meta programming view: agents follow structured roles and produce explicit intermediate artifacts (requirements, design plans, code) rather than free-form dialogue & HumanEval, MBPP, and SoftwareDev software engineering benchmarks & Structured communication improves traceability; clear decomposition of responsibilities; verification and quality checks are part of the workflow & Practical deployments face challenges in persistence and observability; performance depends heavily on prompt quality and structured output reliability \\
 \hline
 \end{tabular}%
 }
@@ -221,9 +231,23 @@ The literature matrix reveals several key insights:
     \item \textbf{Scalability Challenges:} Most approaches face scalability issues, either through computational intensity or lack of structured planning.
 \end{itemize}
 
+\section{MetaGPT Framework}
+
+To address the limitations of existing multi-agent systems, particularly the logic inconsistencies and cascading hallucinations caused by naively chaining LLMs, we introduce the MetaGPT framework. Based on the foundational concepts proposed by Hong et al. (2023) in their paper "MetaGPT: Meta Programming for a Multi-Agent Collaborative Framework", MetaGPT incorporates efficient human workflows into LLM-based multi-agent collaborations through several key innovations:
+
+\begin{itemize}
+    \item \textbf{Standardized Operating Procedures (SOPs):} MetaGPT encodes human domain expertise and established SOPs into prompt sequences. This streamlines workflows and significantly improves the consistency and accuracy of task execution compared to free-form dialogue.
+    \item \textbf{Role Specialization and Complete Workforce:} The framework utilizes an assembly line paradigm, assigning specialized roles such as Product Manager, Architect, Project Manager, Engineer, and QA Engineer. Each role follows specific constraints and responsibilities, mimicking a real-world software company to efficiently break down complex tasks.
+    \item \textbf{Structured Communication Protocols:} Instead of unconstrained natural language chatter, agents communicate through structured artifacts like Product Requirement Documents (PRDs), system designs, APIs, and flowcharts. This minimizes ambiguities, reduces information distortion, and prevents the ``telephone game'' effect.
+    \item \textbf{Publish-Subscribe Message Mechanism:} Agents share information through a global message pool. Rather than one-to-one communication, agents publish their structured outputs to the pool and subscribe to relevant messages based on their role profiles, avoiding information overload and improving efficiency.
+    \item \textbf{Executable Feedback and Iterative Programming:} To ensure code quality and executability, MetaGPT employs a self-correction mechanism during runtime. Engineers generate code, write unit tests, and execute them. If errors occur, the agent debugs the code using historical execution memory and past artifacts, improving the code generation iteratively.
+\end{itemize}
+
+Extensive evaluations on collaborative software engineering benchmarks, such as HumanEval and MBPP, demonstrate that MetaGPT achieves state-of-the-art performance, validating the effectiveness of structured workflows and specialized multi-agent collaboration in complex automated programming tasks.
+
 \section{Research Gaps and Our Contribution}
 
-Grounded in the surveyed literature and current tool landscape, several concrete gaps can be identified that are directly relevant to the \texttt{metagpt-v1} project:
+Grounded in the surveyed literature and current tool landscape, several concrete gaps can be identified that are directly relevant to our proposed project:
 
 \begin{itemize}
     \item \textbf{Lack of end-to-end, production-oriented systems:} Many works focus either on solving isolated programming problems (e.g., competitive programming) or on early research prototypes of multi-agent systems. There is a shortage of production-ready platforms that take a natural language prompt all the way to a structured, full-stack project with APIs, UI, tests, and persistent storage.
@@ -233,19 +257,4 @@ Grounded in the surveyed literature and current tool landscape, several concrete
     \item \textbf{Underutilization of retrieval for code-level context:} While retrieval-augmented generation has been explored for natural language and small code snippets, there is limited work on integrating RAG deeply into agentic workflows for managing entire projects, file trees, and prior artifacts.
 \end{itemize}
 
-These gaps motivate the design choices in \texttt{metagpt-v1}, which explicitly targets end-to-end, observable, and stack-aware agentic code generation.
-
-\section{Our MetaGPT Framework: Addressing the Gaps}
-
-The \texttt{metagpt-v1} repository implements MetaGPT as a concrete, production-oriented response to the above gaps. Its key contributions, as reflected in the project structure and documentation, are:
-
-\begin{itemize}
-    \item \textbf{SOP-driven multi-agent pipeline:} Under \texttt{backend/app/agents} and \texttt{backend/app/sop}, the system defines four specialized agents---Manager, Architect, Engineer, and QA---each with explicit Standard Operating Procedures. These SOPs specify roles, inputs, outputs, and quality criteria, and are enforced programmatically via LangChain/LangGraph rather than remaining purely conceptual.
-    \item \textbf{Graph-based orchestration with explicit state:} The \texttt{backend/app/graph} module (state and orchestrator) uses LangGraph to represent the pipeline as a graph, with a shared state object flowing between nodes. This provides a clear, inspectable model of how requirements become architectures, code, and tests, directly addressing orchestration and traceability gaps.
-    \item \textbf{Modern, full-stack project integration:} MetaGPT is built around a FastAPI backend (\texttt{backend/app/main.py}, \texttt{api/router.py}) and a Next.js 14 + TypeScript frontend (\texttt{frontend/src}). The backend exposes versioned REST APIs for projects, pipeline runs, files, and chat, while the frontend provides a dark-themed UI with components for file exploration, code viewing, agent outputs, and an execution timeline. This aligns the research ideas with real-world development workflows.
-    \item \textbf{Persistent project and file management:} Through \texttt{backend/app/storage} and \texttt{backend/app/models}, the framework persists generated projects to disk, manages file trees, and supports updates. This allows users to treat generated codebases as first-class, reusable artifacts rather than ephemeral samples.
-    \item \textbf{Retrieval-augmented utilities for projects:} The \texttt{backend/app/rag} package provides indexing, embedding, and retrieval utilities designed to operate over project assets. This lays the groundwork for RAG-enhanced agent behavior, where agents can query existing files and artifacts to inform new generations or iterations.
-    \item \textbf{Rich observability and interaction surface:} API endpoints such as \texttt{/api/v1/projects}, \texttt{/api/v1/pipeline/run}, \texttt{/api/v1/pipeline/stream}, and the corresponding frontend components make pipeline runs, agent outputs, and file structures visible to the user. This improves transparency and supports human-in-the-loop refinement.
-\end{itemize}
-
-Taken together, these design and implementation choices show that MetaGPT is not only informed by the literature on multi-agent LLM systems and code generation, but also concretely addresses key gaps by delivering a practical, extensible framework that developers can run, inspect, and build upon.
+These gaps motivate the design choices in our framework, which explicitly targets end-to-end, observable, and stack-aware agentic code generation.
