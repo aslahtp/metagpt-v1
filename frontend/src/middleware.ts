@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Middleware to proxy /api/* requests to the backend.
+ * Middleware for non-API routes (auth guards, redirects, etc.)
  *
- * Uses the runtime env var API_URL (NOT NEXT_PUBLIC_ so it isn't
- * replaced at build time and can be set per-environment).
+ * NOTE: /api/* routes are intentionally excluded from this middleware.
+ * They are handled by src/app/api/[...path]/route.ts which runs on the
+ * Node.js runtime and supports long-running proxy connections (e.g. the
+ * pipeline endpoint can take ~2-3 minutes). The Edge runtime used here
+ * would time out those requests after ~30s.
  */
 export function middleware(request: NextRequest) {
-  const backendUrl = process.env.API_URL || "http://localhost:8000";
-
-  const { pathname, search } = request.nextUrl;
-  const destination = new URL(pathname + search, backendUrl);
-
-  return NextResponse.rewrite(destination);
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  // Explicitly exclude /api/* so the App Router route handler takes over
+  matcher: "/((?!api/).*)",
 };
+
