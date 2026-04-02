@@ -1,6 +1,6 @@
-# MetaGPT Frontend
+# ForgeX Frontend
 
-Next.js frontend for the MetaGPT agentic system.
+Next.js frontend for the ForgeX agentic system.
 
 ## Quick Start
 

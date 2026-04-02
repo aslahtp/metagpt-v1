@@ -381,7 +381,7 @@ export default function ProjectPage() {
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center px-4 gap-4 shrink-0">
         <Link href="/" className="flex items-center hover:opacity-80 transition-opacity duration-200">
-          <span className="font-medium">MetaGPT</span>
+          <span className="font-medium">ForgeX</span>
         </Link>
         <div className="h-4 w-px bg-border" />
         <div className="flex-1 min-w-0" title={project.prompt}>

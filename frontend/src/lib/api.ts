@@ -1,5 +1,5 @@
 /**
- * API client for MetaGPT backend.
+ * API client for ForgeX backend.
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";

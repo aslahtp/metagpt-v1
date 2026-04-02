@@ -363,7 +363,7 @@ export const EDITOR_THEMES: EditorThemeOption[] = [
   },
   {
     id: "metagpt-home",
-    label: "MetaGPT Home (Default)",
+    label: "ForgeX Home (Default)",
     base: "vs-dark",
     swatch: ["#1d1b15", "#f0ede8", "#e8b86d"],
     data: {

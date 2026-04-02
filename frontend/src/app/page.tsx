@@ -206,7 +206,7 @@ export default function HomePage() {
         >
           <a href="/" className="flex items-center group">
             <span className="font-semibold text-lg tracking-tight">
-              MetaGPT
+              ForgeX
             </span>
           </a>
           <nav className="flex items-center gap-5 overflow-hidden">
@@ -572,7 +572,7 @@ export default function HomePage() {
       {/* ── Footer ── */}
       <footer className="relative z-10 border-t border-border px-6 py-6">
         <div className="max-w-5xl mx-auto flex items-center justify-between text-xs text-foreground-subtle">
-          <span>&copy; {new Date().getFullYear()} MetaGPT</span>
+          <span>&copy; {new Date().getFullYear()} ForgeX</span>
           <div className="flex items-center gap-4">
             <a
               href="/docs"

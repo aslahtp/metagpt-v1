@@ -73,7 +73,7 @@ export default function ProjectsPage() {
       <header className="border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <span className="font-semibold text-lg">MetaGPT</span>
+            <span className="font-semibold text-lg">ForgeX</span>
           </Link>
           <Link href="/" className="btn-primary flex items-center gap-2">
             <Plus className="h-4 w-4" />

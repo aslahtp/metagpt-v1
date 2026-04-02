@@ -57,7 +57,7 @@ export default function SignUpPage() {
         <div className="text-center mb-8">
           <a href="/" className="inline-block">
             <span className="font-semibold text-2xl tracking-tight">
-              MetaGPT
+              ForgeX
             </span>
           </a>
           <p className="mt-2 text-sm text-foreground-muted">
