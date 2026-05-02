@@ -14,7 +14,12 @@ export const runtime = "nodejs";
 // Must match (or be less than) the Cloud Run timeoutSeconds: 300.
 export const maxDuration = 295;
 
-const BACKEND_URL = process.env.API_URL || "http://localhost:8000";
+// API_URL: server-only override for the proxy. Falls back to NEXT_PUBLIC_API_URL
+// so local dev only needs one backend URL in .env (same as client-side api.ts / auth).
+const BACKEND_URL =
+  process.env.API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000";
 
 async function proxyRequest(request: NextRequest, params: { path: string[] }) {
   const path = params.path.join("/");
