@@ -17,54 +17,11 @@ The implementation of MetaGPT relies on a modern full-stack environment with the
 
 The backend is organized under \texttt{backend/\allowbreak{}app} and exposes its functionality through a FastAPI application defined in \texttt{main.py}. In this file, the FastAPI instance is created, CORS and other middleware are configured, and the top-level router from \texttt{api/\allowbreak{}router.py} is included, as shown in Listing~\ref{lst:fastapi_setup}. The router groups all versioned endpoints under the \texttt{/\allowbreak{}api/\allowbreak{}v1} prefix and delegates to modules in \texttt{api/\allowbreak{}endpoints}.
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=Python, caption={FastAPI application configuration and middleware setup}, label={lst:fastapi_setup}]
-def create_app() -> FastAPI:
-    settings = get_settings()
-    app = FastAPI(
-        title=settings.app_name,
-        version=settings.app_version,
-        lifespan=lifespan,
-    )
-    # Configure CORS
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    # Include API routes
-    app.include_router(api_router, prefix=settings.api_prefix)
-    return app
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:fastapi_setup}.)
 
 Listing~\ref{lst:backend_create_project} shows a representative endpoint for creating a new project. It validates user credits, calls the pipeline service, and handles persistence.
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=Python, caption={FastAPI endpoint for project creation}, label={lst:backend_create_project}]
-@router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
-async def create_project(
-    request: ProjectCreate,
-    user: User = Depends(get_current_user),
-) -> Project:
-    if not user.has_credits():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You've used all your free credits. Upgrade to premium.",
-        )
-    service = PipelineService()
-    project = await service.create_project(request.prompt, user_id=str(user.id))
-    user.credits_used += 1
-    await user.save()
-    return project
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:backend_create_project}.)
 
 The implementation of individual endpoints is split into focused modules:
 \begin{itemize}
@@ -85,28 +42,7 @@ Agent orchestration is implemented in the \texttt{graph} and \texttt{agents} pac
 
 The graph itself is constructed in \texttt{graph/\allowbreak{}orchestrator.py}. Here, nodes corresponding to the Manager, Architect, Engineer, and QA agents are registered, and edges are defined to specify the order of execution, as demonstrated in Listing~\ref{lst:orchestrator_graph}. Each node invokes a concrete agent class from the \texttt{agents} package:
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=Python, caption={LangGraph orchestrator pipeline configuration}, label={lst:orchestrator_graph}]
-def _build_graph(self) -> StateGraph:
-    workflow = StateGraph(PipelineState)
-    # Add nodes for each agent
-    workflow.add_node("manager", self._run_manager)
-    workflow.add_node("architect", self._run_architect)
-    workflow.add_node("engineer", self._run_engineer)
-    workflow.add_node("qa", self._run_qa)
-
-    # Define deterministic linear flow
-    workflow.set_entry_point("manager")
-    workflow.add_edge("manager", "architect")
-    workflow.add_edge("architect", "engineer")
-    workflow.add_edge("engineer", "qa")
-    workflow.add_edge("qa", END)
-    
-    return workflow.compile()
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:orchestrator_graph}.)
 \begin{itemize}
     \item \texttt{agents/\allowbreak{}manager.py} receives the raw prompt and produces structured requirements.
     \item \texttt{agents/\allowbreak{}architect.py} designs the system architecture and file layout based on those requirements.
@@ -114,41 +50,7 @@ def _build_graph(self) -> StateGraph:
     \item \texttt{agents/\allowbreak{}qa.py} inspects artifacts and produces test cases and quality feedback.
 \end{itemize}
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=Python, caption={Engineer Agent building its prompt with context from earlier pipeline stages}, label={lst:engineer_prompt}]
-def _build_prompt(self, **inputs: Any) -> str:
-    architect_output: ArchitectOutput = inputs.get("architect_output")
-    manager_output: ManagerOutput = inputs.get("manager_output")
-
-    # Format SOP sections
-    constraints_text = self._format_sop_section(self.sop.constraints)
-    quality_text = self._format_sop_section(self.sop.quality_checklist)
-
-    # Format architecture details
-    file_structure = self._format_file_structure(architect_output)
-    components = self._format_components(architect_output)
-    requirements = self._format_requirements(manager_output)
-
-    return f"""# Engineer Agent - Code Generation
-## Your Role
-{self.sop.role}
-
-## Constraints
-{constraints_text}
-
-## Project: {manager_output.project_name}
-{manager_output.project_description}
-
-## File Structure:
-{file_structure}
-
-## Your Task
-Implement ALL files listed in the file structure with production-ready code.
-"""
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:engineer_prompt}.)
 
 All agents inherit from a base class in \texttt{agents/\allowbreak{}base.py}, which standardizes how LLM calls are made, how inputs/outputs are validated using \texttt{schemas/\allowbreak{}agents.py}, and how logging is performed. The orchestrator integrates with LangChain’s LLM abstractions provided by \texttt{llm/\allowbreak{}gemini.py}, enabling both free-form and structured-output interactions. The final orchestration API is exposed to the rest of the application through \texttt{services/\allowbreak{}pipeline\_\allowbreak{}service.py}, which provides functions to start runs, stream intermediate events, and fetch stored artifacts.
 
@@ -167,28 +69,7 @@ These storage modules are consumed by both the API endpoints (for serving file t
 
 \textbf{MongoDB persistence:} In our framework, project state is stored in MongoDB. The database connection is initialized in \texttt{db.py} using Motor and Beanie, and document models such as \texttt{models/\allowbreak{}project.py} and \texttt{models/\allowbreak{}user.py} are registered with Beanie. The \texttt{ProjectStore} (\texttt{storage/\allowbreak{}project\_\allowbreak{}store.py}) provides CRUD operations to create projects, update pipeline status, and persist agent outputs (Manager/Architect/Engineer/QA). Listing~\ref{lst:mongo_create} shows how a new project document is initialized and persisted. This database-backed state allows the application to restore generated files to disk when ephemeral storage is lost (e.g., after container restart), ensuring that the file explorer and subsequent operations remain consistent.
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=Python, caption={Creating and persisting a project document using Beanie ODM}, label={lst:mongo_create}]
-async def create(self, project_id: str, prompt: str, user_id: str = "") -> Project:
-    doc = ProjectDocument(
-        project_id=project_id,
-        user_id=user_id,
-        prompt=prompt,
-        state=ProjectState(
-            pipeline_status=PipelineStatus(
-                stage=PipelineStage.PENDING,
-                progress=0,
-            )
-        ),
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
-    )
-    await doc.insert()
-    return self._to_project(doc)
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:mongo_create}.)
 
 \subsection*{Module 4: Frontend User Interface Implementation}
 
@@ -199,29 +80,7 @@ The frontend implementation lives in the \texttt{frontend/\allowbreak{}src} dire
     \item \texttt{src/\allowbreak{}app/\allowbreak{}project/\allowbreak{}[id]/\allowbreak{}page.tsx} is the main workspace, composed of panels for the file explorer, code viewer, agent outputs, execution timeline, and chat.
 \end{itemize}
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=JavaScript, caption={Client-side form submission handler in Next.js}, label={lst:frontend_submit}]
-const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim() || isLoading) return;
-    if (!token) {
-        router.push("/signin");
-        return;
-    }
-    setIsLoading(true);
-    try {
-        const { createProject } = await import("@/lib/api");
-        const project = await createProject(prompt.trim());
-        router.push(`/project/${project.id}`);
-    } catch (error: unknown) {
-        setSubmitError("Failed to create project");
-        setIsLoading(false);
-    }
-};
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:frontend_submit}.)
 
 Key interactive components are implemented in \texttt{src/\allowbreak{}components}:
 \begin{itemize}
@@ -232,96 +91,19 @@ Key interactive components are implemented in \texttt{src/\allowbreak{}component
     \item \texttt{ChatPanel.tsx} provides a text area and message list for iterative refinement of a project as shown handling submissions in Listing~\ref{lst:chat_submit}.
 \end{itemize}
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=JavaScript, caption={Dynamically building a file tree structure from a flat list of file paths}, label={lst:frontend_file_tree}]
-function buildTreeFromFiles(files: { file_path: string }[]): FileTreeNode | null {
-  if (files.length === 0) return null;
-
-  const root: FileTreeNode = { name: "files", path: "/", type: "directory", children: [], };
-
-  for (const file of files) {
-    const parts = file.file_path.split("/").filter(Boolean);
-    let current = root;
-
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      const isFile = i === parts.length - 1;
-      const path = parts.slice(0, i + 1).join("/");
-      let child = current.children?.find((c) => c.name === part);
-
-      if (!child) {
-        child = { name: part, path, type: isFile ? "file" : "directory", children: isFile ? [] : [], };
-        current.children = current.children || [];
-        current.children.push(child);
-      }
-      current = child;
-    }
-  }
-  return root;
-}
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:frontend_file_tree}.)
 
 The module \texttt{src/\allowbreak{}lib/\allowbreak{}api.ts} centralizes HTTP calls to the backend, while \texttt{src/\allowbreak{}lib/\allowbreak{}store.ts} and related files implement client-side state management (e.g., current project, selected file, pipeline status). Tailwind CSS classes and global styles in \texttt{src/\allowbreak{}app/\allowbreak{}globals.css} are used to implement the dark theme and responsive layout.
 
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=JavaScript, caption={Chat handler supporting Server-Sent Events (SSE) and background indexing}, label={lst:chat_submit}]
-const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim() || isLoading) return;
-
-    const userMessage = message.trim();
-    setMessage("");
-    setIsLoading(true);
-
-    try {
-        const response = await sendChatMessage(
-            projectId,
-            userMessage,
-            autoMode ? null : selectedModel,
-        );
-
-        addChatMessage({
-            ...response.message,
-            files_referenced: response.files_referenced,
-            indexing_status: response.indexing_status,
-        });
-
-        // If indexing is pending, trigger it live
-        if (response.indexing_status === "pending") {
-            indexProjectFiles(projectId, response.files_modified);
-        }
-    } finally {
-        setIsLoading(false);
-    }
-};
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:chat_submit}.)
 
 
 \subsection*{Module 5: LLM, SOP, and Retrieval Implementation}
 
 The LLM, SOP, and retrieval logic is implemented in the \texttt{llm}, \texttt{sop}, and \texttt{rag} packages. The file \texttt{llm/\allowbreak{}gemini.py} exposes functions such as \texttt{get\_\allowbreak{}llm()} and \texttt{get\_\allowbreak{}llm\_\allowbreak{}with\_\allowbreak{}structured\_\allowbreak{}output(schema)} (see Listing~\ref{lst:gemini_structured}). These functions read configuration from \texttt{config.py} (e.g., model name, temperature, API key) and return LangChain \texttt{ChatModel} instances configured for MetaGPT. This ensures that all agents share a single, centrally managed LLM configuration.
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=Python, caption={Configuring Gemini for structured JSON output via LangChain}, label={lst:gemini_structured}]
-def get_llm_with_structured_output(
-    output_schema: type[T],
-    temperature: float | None = None,
-    max_tokens: int | None = None,
-    model: str | None = None,
-) -> BaseChatModel:
-    base_llm = get_llm(temperature=temperature, max_tokens=max_tokens, model=model)
-    return base_llm.with_structured_output(output_schema)
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:gemini_structured}.)
 
 Agent SOPs are defined in \texttt{sop/\allowbreak{}definitions.py}. Each SOP includes fields such as role description, objectives, required inputs, expected outputs, constraints, and a quality checklist. The concrete agent classes in \texttt{agents/\allowbreak{}*.py} load these SOPs and use them to construct prompts or system messages when calling the LLM, ensuring that behavior is consistent and traceable across runs.
 
@@ -333,36 +115,7 @@ Retrieval-augmented generation is supported by the \texttt{rag} package:
     \item \texttt{rag/\allowbreak{}retriever.py} implements retrieval logic that selects the most relevant chunks of text to be added as context to LLM prompts. Listing~\ref{lst:retriever_search} highlights the core similarity search function.
 \end{itemize}
 
-\begin{center}
-\begin{minipage}{\linewidth}
-\begin{lstlisting}[language=Python, caption={Retrieving relevant codebase chunks from the vector store}, label={lst:retriever_search}]
-async def retrieve(self, project_id: str, query: str, k: int | None = None) -> list[RetrievedChunk]:
-    if not self.settings.rag_enabled:
-        return []
-
-    k = k or self.settings.rag_top_k
-    try:
-        vector_store = get_vector_store(project_id)
-        # Similarity search with scores
-        results = vector_store.similarity_search_with_relevance_scores(query, k=k)
-
-        chunks = []
-        for doc, score in results:
-            chunks.append(
-                RetrievedChunk(
-                    content=doc.page_content,
-                    file_path=doc.metadata.get("file_path", "unknown"),
-                    language=doc.metadata.get("language", "text"),
-                    relevance_score=score,
-                )
-            )
-        return chunks
-    except Exception as e:
-        logger.error(f"Retrieval error for project {project_id}: {e}")
-        return []
-\end{lstlisting}
-\end{minipage}
-\end{center}
+(See Appendix~I, Listing~\ref{lst:retriever_search}.)
 
 By combining these pieces, the system can ground agent reasoning in both the current project state and external knowledge sources, improving the relevance and reliability of generated code and explanations.
 
@@ -659,7 +412,51 @@ End-to-end & Generated project structure is usable & Inspect generated project o
 \hline
 \end{longtable}
 
+\subsection{User Acceptance Testing}
+
+User Acceptance Testing (UAT) evaluates MetaGPT from the end-user's perspective, verifying that the system meets practical usability and functional expectations when operated by non-developer users or project stakeholders. The deployed application is publicly accessible at \url{https://metagpt-mits.tech/}. Testers were provided with the running application and a set of representative tasks; results are summarised in Table~\ref{tab:uat}.
+
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|p{3.2cm}|p{3.6cm}|p{3.6cm}|p{4.0cm}|>{\centering\arraybackslash}p{1.6cm}|}
+\caption{User Acceptance Test Cases}
+\label{tab:uat}
+\\
+\hline
+\textbf{Feature} & \textbf{Test Scenario} & \textbf{User Action} & \textbf{Expected Outcome} & \textbf{Status} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Feature} & \textbf{Test Scenario} & \textbf{User Action} & \textbf{Expected Outcome} & \textbf{Status} \\
+\hline
+\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+Registration \& Login & New user can register and sign in & User opens app, clicks Sign Up, fills in name, email, and password, then signs in & Account created successfully; user is redirected to the home page with session active & Pass \\
+\hline
+Project Creation & User submits a natural language prompt & User types ``Build a todo app with React and a Node.js backend'' and clicks Generate & Project is created; pipeline progress is visible; generated files appear in the file explorer on completion & Pass \\
+\hline
+File Explorer & User browses generated project structure & After pipeline completion, user clicks through folders and files in the file explorer & Correct directory tree is shown; clicking a file loads its content in the code viewer & Pass \\
+\hline
+Code Viewer & User reads and understands generated code & User selects a generated source file & Syntax-highlighted code is displayed clearly; scrolling and navigation work smoothly & Pass \\
+\hline
+Agent Output Panel & User inspects agent reasoning & User opens the Agent Outputs panel after pipeline completion & Manager, Architect, Engineer, and QA outputs are displayed in a structured, readable format & Pass \\
+\hline
+Execution Timeline & User monitors pipeline progress & User starts project generation and watches the timeline & Timeline updates in real time showing each agent stage (Manager $\rightarrow$ Architect $\rightarrow$ Engineer $\rightarrow$ QA) with status indicators & Pass \\
+\hline
+Chat Iteration & User refines project via chat & User types a change request (e.g., ``Add a dark mode toggle'') in the Chat panel & Assistant responds with a summary of changes; modified files are updated in the file explorer; changes are visible in the code viewer & Pass \\
+\hline
+Multiple Projects & User manages several projects & User creates two separate projects and switches between them & Both projects are listed on the Projects page; each workspace shows the correct files and outputs with no data mixing & Pass \\
+\hline
+Sandbox Preview & User previews a generated web app & User clicks Preview on a completed Next.js project & A live preview URL is returned; the app renders in an iframe without manual setup by the user & Pass \\
+\hline
+Credit Limit & Free-tier user hits credit cap & Free-tier user creates 2 projects (the default limit) and attempts a third & A clear ``credits exhausted'' message is shown; the user is prompted to upgrade; no project is created & Pass \\
+\hline
+\end{longtable}
+
 \section{Experimental Results \& Discussion}
+
 
 To evaluate MetaGPT, a series of experiments were performed using representative prompts such as ``Build a todo app with React and a REST API backend'' and ``Build a blog platform with Next.js''. For each prompt, the agent pipeline was executed end-to-end, and the resulting project structure, code quality, and test coverage were examined. The system successfully generated multi-file codebases with clear separation between frontend and backend components, along with auxiliary files such as configuration and routing modules.
 
