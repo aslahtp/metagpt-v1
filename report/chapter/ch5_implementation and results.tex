@@ -457,7 +457,72 @@ Credit Limit & Free-tier user hits credit cap & Free-tier user creates 2 project
 
 \section{Experimental Results \& Discussion}
 
+This section summarises pilot experiments that complement the structured test cases in Section~5.3. The focus aligns with the project objectives: \emph{usability} of the full workflow, \emph{consistency} of generated project layout and separation of concerns, and \emph{support for iteration} relative to one-shot generation from the same base model.
 
-To evaluate MetaGPT, a series of experiments were performed using representative prompts such as ``Build a todo app with React and a REST API backend'' and ``Build a blog platform with Next.js''. For each prompt, the agent pipeline was executed end-to-end, and the resulting project structure, code quality, and test coverage were examined. The system successfully generated multi-file codebases with clear separation between frontend and backend components, along with auxiliary files such as configuration and routing modules.
+\subsection{Setup and procedure}
 
-Qualitative analysis showed that the SOP-driven pipeline led to more consistent architectures and clearer traceability from requirements to implementation compared to ad-hoc single-prompt generation. The execution timeline and agent output visualization also improved transparency, allowing users to understand and debug the reasoning process of each agent. Limitations observed during experimentation include sensitivity to ambiguous prompts and occasional need for manual adjustments to align generated code with specific framework versions or organizational coding standards. These observations inform the future enhancements discussed in later chapters.
+Experiments were run on the implementation described earlier in this chapter (FastAPI backend, LangGraph orchestration, Gemini via LangChain, MongoDB-backed project state, Next.js workspace). For each representative prompt, the Manager $\rightarrow$ Architect $\rightarrow$ Engineer $\rightarrow$ QA pipeline was executed end-to-end. Artefacts were inspected in three ways: (i)~the on-disk tree under the configured project directory, (ii)~agent outputs and timeline events in the UI, and (iii)~spot checks of generated source for coherence with the Architect file plan and QA suggestions. Where helpful, the \emph{same natural-language prompt} was also tried once as a single unstructured request to the base chat model (no staged roles, no persisted graph state) to form an informal contrast; this is not a large-scale benchmark but a sanity check against ad-hoc one-shot use.
+
+\subsection{Representative prompts and illustrative trace}
+
+Representative inputs included:
+\begin{itemize}
+    \item ``Build a todo app with React and a REST API backend.''
+    \item ``Build a blog platform with Next.js.''
+    \item Shorter stack-only prompts (e.g.\ ``small Express + React dashboard'') to stress-test ambiguity.
+\end{itemize}
+
+For the todo-style prompt, a typical successful run exhibited a clear chain of artefacts: the Manager produced normalised requirements (data model, API surface, UI expectations); the Architect emitted a multi-file plan with separate frontend routes or components and backend modules; the Engineer populated those paths with implementation code; the QA stage added or described tests and highlighted risks. Auxiliary files (package manifests, environment examples, basic routing) often appeared without being explicitly named in the user prompt, which suggests the SOPs encourage a ``project-shaped'' output rather than a single-file snippet.
+
+\subsection{Qualitative comparison with informal single-shot generation}
+
+Table~\ref{tab:exp_qualitative} records recurring observations from the pilot runs. Language is intentionally qualitative: outcomes depend on prompt wording, model version, and token limits.
+
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{|p{3.0cm}|p{5.5cm}|p{5.5cm}|}
+\caption{Qualitative comparison: MetaGPT multi-agent workflow vs.\ informal single-request generation (pilot observations on the same prompts)}
+\label{tab:exp_qualitative}
+\\
+\hline
+\textbf{Dimension} & \textbf{MetaGPT workflow} & \textbf{Single-request baseline} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Dimension} & \textbf{MetaGPT workflow} & \textbf{Single-request baseline} \\
+\hline
+\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+Traceability & Requirements, design, and code are visible as separate stages; users can see \emph{why} a file exists. & One blob of code or a short explanation; weak link from original prompt to file boundaries. \\
+\hline
+Project structure & Repeatedly produced multi-directory layouts and split frontend/backend when the prompt implied a full stack. & Often a smaller set of files or one long file; stack split less reliable. \\
+\hline
+Observability & Timeline and agent panels support debugging stalls or schema validation issues. & No intermediate artefacts; failure modes are harder to localise. \\
+\hline
+Iteration & Chat and re-runs build on stored project state and file tree. & User must paste prior code and re-prompt manually; context management is ad hoc. \\
+\hline
+Run-to-run variation & Some variation remains, but stages constrain format (e.g.\ structured Manager/Architect outputs). & High variance in format and scope in a single completion. \\
+\hline
+\end{longtable}
+
+\subsection{Execution time and scale}
+
+End-to-end runs were dominated by LLM latency and the number of agent steps rather than local CPU. On the development hardware used for this project, full pipeline completions were typically on the order of \textbf{one to several minutes} per prompt for the representative cases above, with longer runs when prompts requested broader scope or when the model produced larger file sets. No formal latency benchmark was collected across many trials; reporting here is intended only to set expectations for deployment and user experience.
+
+\subsection{Failure modes and limitations}
+
+Several recurring limitations appeared during experimentation:
+\begin{itemize}
+    \item \textbf{Ambiguous or underspecified prompts} (e.g.\ ``make a nice app'') led to generic stacks or missing non-functional requirements until the user refined the prompt or used chat iteration.
+    \item \textbf{Version and ecosystem drift}: generated dependency versions occasionally lagged or mismatched locally installed toolchains, requiring manual edits despite a structurally sound layout.
+    \item \textbf{Scope overload}: very large features in one prompt increased the chance of incomplete files or superficial tests; narrowing scope per run improved completeness.
+    \item \textbf{Retrieval (RAG)}: utilities exist in the implementation, but the pilot focussed on orchestration and UI; quantitative ablation of RAG vs.\ non-RAG runs was left for future work.
+\end{itemize}
+
+\subsection{Threats to validity}
+
+Pilot evaluation used a small set of prompts and subjective coding of ``structure'' and ``traceability,'' so findings do not imply statistical generalisation across all domains or languages. Results are contingent on Google Gemini behaviour and prompt templates at the time of writing; reproducibility requires fixing model identifiers and preserving SOP definitions. User acceptance results in Section~5.3 reflect task-based checks rather than longitudinal field studies.
+
+These observations inform the future enhancements discussed in later chapters.

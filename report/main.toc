@@ -47,7 +47,13 @@
 \contentsline {subsection}{\numberline {5.3.3}System Testing}{46}{}%
 \contentsline {subsection}{\numberline {5.3.4}User Acceptance Testing}{47}{}%
 \contentsline {section}{\numberline {5.4}Experimental Results \& Discussion}{49}{}%
-\contentsline {chapter}{\numberline {6}Conclusion}{50}{}%
-\contentsline {chapter}{\numberline {7}Future Scope}{51}{}%
-\contentsline {chapter}{References}{52}{}%
-\contentsline {chapter}{Appendix}{54}{}%
+\contentsline {subsection}{\numberline {5.4.1}Setup and procedure}{49}{}%
+\contentsline {subsection}{\numberline {5.4.2}Representative prompts and illustrative trace}{49}{}%
+\contentsline {subsection}{\numberline {5.4.3}Qualitative comparison with informal single-shot generation}{50}{}%
+\contentsline {subsection}{\numberline {5.4.4}Execution time and scale}{50}{}%
+\contentsline {subsection}{\numberline {5.4.5}Failure modes and limitations}{51}{}%
+\contentsline {subsection}{\numberline {5.4.6}Threats to validity}{51}{}%
+\contentsline {chapter}{\numberline {6}Conclusion}{52}{}%
+\contentsline {chapter}{\numberline {7}Future Scope}{53}{}%
+\contentsline {chapter}{References}{54}{}%
+\contentsline {chapter}{Appendix}{56}{}%
