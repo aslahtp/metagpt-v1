@@ -16,35 +16,597 @@
 
 \vspace{0.5cm}
 
-This appendix can include representative code snippets from the MetaGPT project, such as:
-\begin{itemize}
-    \item The FastAPI application entry point that wires routers and middleware.
-    \item An example of an agent SOP definition or agent implementation.
-    \item A LangGraph pipeline definition showing the connections between Manager, Architect, Engineer, and QA agents.
-    \item A sample frontend component (e.g., \texttt{ExecutionTimeline} or \texttt{FileExplorer}) illustrating how agent outputs are visualized.
-\end{itemize}
-These snippets help readers understand the implementation style, coding conventions, and integration points between different modules of the system.
-
-\vspace{1cm}
-
-% ----------------------------------------------------------
-% List of Publications
-% ----------------------------------------------------------
-
-\section*{List of Publications}
+The following listings present representative source-code excerpts from the MetaGPT implementation,
+covering backend API configuration, agent orchestration, storage, frontend interaction, and
+retrieval-augmented generation.
 
 \vspace{0.5cm}
 
-Your publication details here.
-
-\vspace{1cm}
-
-% ----------------------------------------------------------
-% Achievements If Any
-% ----------------------------------------------------------
-
-\section*{Achievements If Any}
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={FastAPI application configuration and middleware setup}, label={lst:fastapi_setup}]
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.app_version,
+        lifespan=lifespan,
+    )
+    # Configure CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    # Include API routes
+    app.include_router(api_router, prefix=settings.api_prefix)
+    return app
+\end{lstlisting}
+\end{minipage}
+\end{center}
 
 \vspace{0.5cm}
 
-Your achievements here.
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={FastAPI endpoint for project creation}, label={lst:backend_create_project}]
+@router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
+async def create_project(
+    request: ProjectCreate,
+    user: User = Depends(get_current_user),
+) -> Project:
+    if not user.has_credits():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You've used all your free credits. Upgrade to premium.",
+        )
+    service = PipelineService()
+    project = await service.create_project(request.prompt, user_id=str(user.id))
+    user.credits_used += 1
+    await user.save()
+    return project
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={LangGraph orchestrator pipeline configuration}, label={lst:orchestrator_graph}]
+def _build_graph(self) -> StateGraph:
+    workflow = StateGraph(PipelineState)
+    # Add nodes for each agent
+    workflow.add_node("manager", self._run_manager)
+    workflow.add_node("architect", self._run_architect)
+    workflow.add_node("engineer", self._run_engineer)
+    workflow.add_node("qa", self._run_qa)
+
+    # Define deterministic linear flow
+    workflow.set_entry_point("manager")
+    workflow.add_edge("manager", "architect")
+    workflow.add_edge("architect", "engineer")
+    workflow.add_edge("engineer", "qa")
+    workflow.add_edge("qa", END)
+    
+    return workflow.compile()
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={Engineer Agent building its prompt with context from earlier pipeline stages}, label={lst:engineer_prompt}]
+def _build_prompt(self, **inputs: Any) -> str:
+    architect_output: ArchitectOutput = inputs.get("architect_output")
+    manager_output: ManagerOutput = inputs.get("manager_output")
+
+    # Format SOP sections
+    constraints_text = self._format_sop_section(self.sop.constraints)
+    quality_text = self._format_sop_section(self.sop.quality_checklist)
+
+    # Format architecture details
+    file_structure = self._format_file_structure(architect_output)
+    components = self._format_components(architect_output)
+    requirements = self._format_requirements(manager_output)
+
+    return f"""# Engineer Agent - Code Generation
+## Your Role
+{self.sop.role}
+
+## Constraints
+{constraints_text}
+
+## Project: {manager_output.project_name}
+{manager_output.project_description}
+
+## File Structure:
+{file_structure}
+
+## Your Task
+Implement ALL files listed in the file structure with production-ready code.
+"""
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={Creating and persisting a project document using Beanie ODM}, label={lst:mongo_create}]
+async def create(self, project_id: str, prompt: str, user_id: str = "") -> Project:
+    doc = ProjectDocument(
+        project_id=project_id,
+        user_id=user_id,
+        prompt=prompt,
+        state=ProjectState(
+            pipeline_status=PipelineStatus(
+                stage=PipelineStage.PENDING,
+                progress=0,
+            )
+        ),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    await doc.insert()
+    return self._to_project(doc)
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=JavaScript, caption={Client-side form submission handler in Next.js}, label={lst:frontend_submit}]
+const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prompt.trim() || isLoading) return;
+    if (!token) {
+        router.push("/signin");
+        return;
+    }
+    setIsLoading(true);
+    try {
+        const { createProject } = await import("@/lib/api");
+        const project = await createProject(prompt.trim());
+        router.push(`/project/${project.id}`);
+    } catch (error: unknown) {
+        setSubmitError("Failed to create project");
+        setIsLoading(false);
+    }
+};
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=JavaScript, caption={Dynamically building a file tree structure from a flat list of file paths}, label={lst:frontend_file_tree}]
+function buildTreeFromFiles(files: { file_path: string }[]): FileTreeNode | null {
+  if (files.length === 0) return null;
+
+  const root: FileTreeNode = { name: "files", path: "/", type: "directory", children: [], };
+
+  for (const file of files) {
+    const parts = file.file_path.split("/").filter(Boolean);
+    let current = root;
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const isFile = i === parts.length - 1;
+      const path = parts.slice(0, i + 1).join("/");
+      let child = current.children?.find((c) => c.name === part);
+
+      if (!child) {
+        child = { name: part, path, type: isFile ? "file" : "directory", children: isFile ? [] : [], };
+        current.children = current.children || [];
+        current.children.push(child);
+      }
+      current = child;
+    }
+  }
+  return root;
+}
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=JavaScript, caption={Chat handler supporting Server-Sent Events (SSE) and background indexing}, label={lst:chat_submit}]
+const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || isLoading) return;
+
+    const userMessage = message.trim();
+    setMessage("");
+    setIsLoading(true);
+
+    try {
+        const response = await sendChatMessage(
+            projectId,
+            userMessage,
+            autoMode ? null : selectedModel,
+        );
+
+        addChatMessage({
+            ...response.message,
+            files_referenced: response.files_referenced,
+            indexing_status: response.indexing_status,
+        });
+
+        // If indexing is pending, trigger it live
+        if (response.indexing_status === "pending") {
+            indexProjectFiles(projectId, response.files_modified);
+        }
+    } finally {
+        setIsLoading(false);
+    }
+};
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={Configuring Gemini for structured JSON output via LangChain}, label={lst:gemini_structured}]
+def get_llm_with_structured_output(
+    output_schema: type[T],
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+    model: str | None = None,
+) -> BaseChatModel:
+    base_llm = get_llm(temperature=temperature, max_tokens=max_tokens, model=model)
+    return base_llm.with_structured_output(output_schema)
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={Retrieving relevant codebase chunks from the vector store}, label={lst:retriever_search}]
+async def retrieve(self, project_id: str, query: str, k: int | None = None) -> list[RetrievedChunk]:
+    if not self.settings.rag_enabled:
+        return []
+
+    k = k or self.settings.rag_top_k
+    try:
+        vector_store = get_vector_store(project_id)
+        # Similarity search with scores
+        results = vector_store.similarity_search_with_relevance_scores(query, k=k)
+
+        chunks = []
+        for doc, score in results:
+            chunks.append(
+                RetrievedChunk(
+                    content=doc.page_content,
+                    file_path=doc.metadata.get("file_path", "unknown"),
+                    language=doc.metadata.get("language", "text"),
+                    relevance_score=score,
+                )
+            )
+        return chunks
+    except Exception as e:
+        logger.error(f"Retrieval error for project {project_id}: {e}")
+        return []
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={BaseAgent: core LLM invocation loop with structured output and execution statistics}, label={lst:base_agent_execute}]
+async def execute(self, **inputs: Any) -> T:
+    start_time = time.time()
+
+    # Build the prompt from SOP template
+    prompt = self._build_prompt(**inputs)
+
+    # Get LLM configured for structured output
+    llm = get_llm_with_structured_output(self.output_schema)
+
+    # Create messages
+    messages = [
+        SystemMessage(content=self.sop.role),
+        HumanMessage(content=prompt),
+    ]
+
+    # Execute and get structured response
+    try:
+        result = await llm.ainvoke(messages)
+
+        self._execution_stats = {
+            "execution_time_ms": int((time.time() - start_time) * 1000),
+            "status": "success",
+            "agent_name": self.name,
+        }
+        return result
+
+    except Exception as e:
+        self._execution_stats = {
+            "execution_time_ms": int((time.time() - start_time) * 1000),
+            "status": "error",
+            "error": str(e),
+            "agent_name": self.name,
+        }
+        raise
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={LangGraph PipelineState TypedDict and initial state factory}, label={lst:pipeline_state}]
+class PipelineState(TypedDict, total=False):
+    """State that flows through the LangGraph pipeline."""
+
+    # Input
+    project_id: str
+    user_prompt: str
+    context: str
+
+    # Agent outputs
+    manager_output:  ManagerOutput  | None
+    architect_output: ArchitectOutput | None
+    engineer_output:  EngineerOutput  | None
+    qa_output:        QAOutput        | None
+
+    # Pipeline tracking
+    current_stage: Literal[
+        "pending", "manager", "architect", "engineer", "qa", "completed", "error"
+    ]
+    progress: float
+    error: str | None
+    execution_log: list[dict[str, Any]]
+
+
+def create_initial_state(project_id: str, user_prompt: str, context: str = "") -> PipelineState:
+    """Create initial pipeline state from user input."""
+    return PipelineState(
+        project_id=project_id,
+        user_prompt=user_prompt,
+        context=context,
+        manager_output=None,
+        architect_output=None,
+        engineer_output=None,
+        qa_output=None,
+        current_stage="pending",
+        progress=0.0,
+        error=None,
+        started_at=datetime.utcnow().isoformat(),
+        completed_at=None,
+        execution_log=[],
+    )
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={ManagerAgent: SOP-driven prompt construction for requirements extraction}, label={lst:manager_prompt}]
+class ManagerAgent(BaseAgent[ManagerOutput]):
+    """Manager Agent - Converts user prompts to structured requirements."""
+
+    def __init__(self):
+        super().__init__(sop=MANAGER_SOP, output_schema=ManagerOutput)
+
+    @property
+    def name(self) -> str:
+        return "ManagerAgent"
+
+    def _build_prompt(self, **inputs: Any) -> str:
+        user_prompt = inputs.get("user_prompt", "")
+        context = inputs.get("context", "No additional context provided.")
+
+        constraints_text = self._format_sop_section(self.sop.constraints)
+        quality_text = self._format_sop_section(self.sop.quality_checklist)
+
+        return self.sop.prompt_template.format(
+            role=self.sop.role,
+            objective=self.sop.objective,
+            constraints=constraints_text,
+            quality_checklist=quality_text,
+            user_prompt=user_prompt,
+            context=context,
+        )
+
+
+async def run_manager_agent(user_prompt: str, context: str = "") -> ManagerOutput:
+    """Convenience function to run the Manager Agent."""
+    agent = ManagerAgent()
+    return await agent.execute(user_prompt=user_prompt, context=context)
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={JWT authentication: token creation and FastAPI dependency for current user}, label={lst:jwt_auth}]
+def create_access_token(user_id: str, email: str) -> str:
+    """Create a JWT access token for a user."""
+    settings = get_settings()
+    expire = datetime.utcnow() + timedelta(hours=settings.jwt_expiration_hours)
+    payload = {"sub": user_id, "email": email, "exp": expire}
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+async def get_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+) -> User:
+    """FastAPI dependency: validates JWT and returns the User from MongoDB."""
+    settings = get_settings()
+    token = credentials.credentials
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        user_id: str | None = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    try:
+        user = await User.get(PydanticObjectId(user_id))
+    except Exception:
+        raise credentials_exception
+
+    if user is None:
+        raise credentials_exception
+
+    return user
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={CodebaseIndexer: language-aware file chunking and vector store ingestion}, label={lst:indexer_project}]
+def _get_splitter(self, file_path: str) -> RecursiveCharacterTextSplitter:
+    """Get a language-aware text splitter for the file type."""
+    ext = Path(file_path).suffix.lower()
+    language = _LANGUAGE_MAP.get(ext)
+
+    if language:
+        return RecursiveCharacterTextSplitter.from_language(
+            language=language,
+            chunk_size=self.settings.rag_chunk_size,
+            chunk_overlap=self.settings.rag_chunk_overlap,
+        )
+    return RecursiveCharacterTextSplitter(
+        chunk_size=self.settings.rag_chunk_size,
+        chunk_overlap=self.settings.rag_chunk_overlap,
+        separators=["\n\n", "\n", " ", ""],
+    )
+
+
+async def index_project(self, project_id: str) -> dict:
+    """Index all files in a project into the vector store."""
+    file_paths = await self.file_store.list_files(project_id)
+    documents = []
+
+    for file_path in file_paths:
+        if self._should_skip(file_path):
+            continue
+        file_data = await self.file_store.read_file(project_id, file_path)
+        if not file_data or not file_data.content.strip():
+            continue
+
+        splitter = self._get_splitter(file_path)
+        for i, chunk in enumerate(splitter.split_text(file_data.content)):
+            documents.append(Document(
+                page_content=chunk,
+                metadata={
+                    "file_path": file_path,
+                    "language": file_data.language,
+                    "chunk_index": i,
+                    "project_id": project_id,
+                    "indexed_at": datetime.utcnow().isoformat(),
+                },
+            ))
+
+    vector_store = get_vector_store(project_id)
+    vector_store.add_documents(documents)
+    return {"files_indexed": len(set(d.metadata["file_path"] for d in documents)),
+            "chunks_created": len(documents)}
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={ChatService: RAG-driven file selection and single-LLM-call edit flow}, label={lst:chat_service}]
+async def process_message(self, project_id: str, request: ChatRequest) -> ChatResponse:
+    """
+    Process a chat message to produce targeted file edits.
+    Flow: RAG retrieval -> read file contents -> single LLM call -> write changes.
+    """
+    all_file_paths = await self.file_store.list_files(project_id)
+
+    # Build file context: all files for small projects, RAG-selected for large ones
+    if len(all_file_paths) <= 30:
+        file_context = await self._read_all_files(project_id, all_file_paths)
+    elif self.settings.rag_enabled:
+        relevant = await self.retriever.retrieve_files(project_id, request.message, k=15)
+        file_context = "\n\n".join(
+            f"### {f['file_path']} ({f['language']})\n```{f['language']}\n{f['content']}\n```"
+            for f in relevant
+        )
+    else:
+        file_context = await self._read_all_files(project_id, all_file_paths)
+
+    # Single LLM call for targeted edits
+    llm_result = await self._call_llm(request.message, file_context, all_file_paths)
+
+    # Write modified files to disk and update MongoDB
+    files_modified = []
+    for file_data in llm_result.get("files", []):
+        spec = GeneratedFileSpec(**file_data)
+        await self.file_store.write_file(project_id, spec)
+        files_modified.append(spec.file_path)
+
+    if files_modified:
+        await self._update_project_state(project_id, files_modified)
+
+    return ChatResponse(
+        message=ChatMessage(role="assistant",
+                            content=llm_result.get("summary", "Done.")),
+        files_modified=files_modified,
+        indexing_status="pending" if files_modified and self.settings.rag_enabled else None,
+    )
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[language=Python, caption={MongoDB initialisation with Motor and Beanie ODM}, label={lst:db_init}]
+async def init_db() -> None:
+    """Initialize the MongoDB connection and Beanie ODM."""
+    from app.models.user import User
+    from app.models.project import ProjectDocument
+
+    settings = get_settings()
+    client = AsyncIOMotorClient(settings.mongodb_uri)
+    db = client[settings.mongodb_db]
+
+    await init_beanie(
+        database=db,
+        document_models=[User, ProjectDocument],
+    )
+\end{lstlisting}
+\end{minipage}
+\end{center}
